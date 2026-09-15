@@ -3,6 +3,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
 from app.models.product import Product
+from app.models.sale import Sale
 
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
 
@@ -13,4 +14,4 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-__all__ = ["Product", "SessionLocal", "engine", "init_db"]
+__all__ = ["Product", "Sale", "SessionLocal", "engine", "init_db"]
