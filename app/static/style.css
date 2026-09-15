@@ -1,0 +1,123 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f4f5f7;
+  color: #1c1e21;
+  line-height: 1.5;
+  padding: 1.5rem;
+}
+
+header h1 {
+  margin-bottom: 1rem;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.card h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
+}
+
+.status {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: #eef1f6;
+  min-height: 1.5rem;
+}
+
+.status.error {
+  background: #fdecec;
+  color: #b42318;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+input[type="text"],
+input[type="number"] {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #c9ced6;
+  border-radius: 6px;
+  font: inherit;
+}
+
+input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+}
+
+button {
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2f6fed;
+  color: #ffffff;
+}
+
+button.secondary {
+  background: #e1e4e8;
+  color: #1c1e21;
+}
+
+button:hover {
+  filter: brightness(0.95);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #eaecef;
+}
+
+th {
+  background: #fafbfc;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+tbody tr:hover {
+  background: #f6f8fa;
+}
+
+form {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0.6rem 0.75rem;
+  align-items: center;
+}
+
+form button {
+  justify-self: start;
+  margin-top: 0.5rem;
+}

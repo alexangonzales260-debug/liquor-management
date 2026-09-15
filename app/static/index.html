@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Bebidas</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Gestión de Bebidas</h1>
+  </header>
+
+  <main>
+    <section id="status" class="status" aria-live="polite"></section>
+
+    <section class="card">
+      <h2>Filtros</h2>
+      <div id="filter-bar" class="filter-bar">
+        <input id="filter-search" type="text" placeholder="Buscar por nombre...">
+        <input id="filter-category" type="text" placeholder="Categoría">
+        <button id="filter-apply" type="button">Aplicar filtros</button>
+        <button id="filter-clear" type="button">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Productos</h2>
+      <table id="products-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Volume ml</th>
+            <th>Price</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Producto</h2>
+      <form id="product-form">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" required>
+
+        <label for="category">Category</label>
+        <input id="category" name="category" type="text">
+
+        <label for="volume_ml">Volume ml</label>
+        <input id="volume_ml" name="volume_ml" type="number" min="0" step="1">
+
+        <label for="price_cents">Price cents</label>
+        <input id="price_cents" name="price_cents" type="number" min="0" step="1">
+
+        <label for="stock">Stock</label>
+        <input id="stock" name="stock" type="number" min="0" step="1">
+
+        <button id="product-submit" type="submit">Guardar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
