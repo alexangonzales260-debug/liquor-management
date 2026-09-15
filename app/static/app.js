@@ -27,8 +27,12 @@
   let currentParams = { category: "", search: "" };
   let editingId = null;
 
-  function setStatus(message) {
+  function setStatus(message, kind) {
     statusEl.textContent = message;
+    statusEl.classList.remove("error", "loading");
+    if (kind) {
+      statusEl.classList.add(kind);
+    }
   }
 
   function formatPrice(priceCents) {
@@ -69,7 +73,8 @@
   function renderProducts(products) {
     productsBody.textContent = "";
     if (!products.length) {
-      productsBody.innerHTML = '<tr><td colspan="6">No hay productos</td></tr>';
+      productsBody.innerHTML =
+        '<tr><td colspan="6" class="empty-row">No hay productos</td></tr>';
       return;
     }
     products.forEach(function (product) {
@@ -91,6 +96,7 @@
       stock.textContent = product.stock;
 
       const actions = document.createElement("td");
+      actions.className = "actions";
       const editBtn = document.createElement("button");
       editBtn.type = "button";
       editBtn.className = "secondary";
@@ -100,13 +106,41 @@
       });
       actions.appendChild(editBtn);
 
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "danger";
+      deleteBtn.textContent = "Borrar";
+      deleteBtn.addEventListener("click", function () {
+        const message =
+          '¿Borrar "' + product.name + '" (#' + product.id + ")?";
+        if (!window.confirm(message)) {
+          return;
+        }
+        setStatus("Eliminando producto #" + product.id + "...", "loading");
+        fetch("/api/products/" + product.id, { method: "DELETE" })
+          .then(function (response) {
+            if (response.status === 204) {
+              setStatus("");
+              fetchProducts(currentParams);
+              return;
+            }
+            return response.json().then(function (body) {
+              throw new Error(readApiError(body));
+            });
+          })
+          .catch(function (err) {
+            setStatus(err.message || "request failed", "error");
+          });
+      });
+      actions.appendChild(deleteBtn);
+
       row.append(name, category, volume, price, stock, actions);
       productsBody.appendChild(row);
     });
   }
 
   function fetchProducts(params) {
-    setStatus("Cargando productos...");
+    setStatus("Cargando productos...", "loading");
     fetch("/api/products" + buildQueryString(params))
       .then(function (response) {
         if (!response.ok) {
@@ -120,7 +154,7 @@
         setStatus("");
       })
       .catch(function () {
-        setStatus("request failed");
+        setStatus("request failed", "error");
       });
   }
 
@@ -190,7 +224,7 @@
     event.preventDefault();
     const error = validateForm();
     if (error) {
-      setStatus(error);
+      setStatus(error, "error");
       return;
     }
     const url =
@@ -212,7 +246,7 @@
         });
       })
       .catch(function (err) {
-        setStatus(err.message || "request failed");
+        setStatus(err.message || "request failed", "error");
       });
   });
 
