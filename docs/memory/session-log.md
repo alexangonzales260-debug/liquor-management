@@ -13,3 +13,9 @@
 - **Build T1-T5**: T1 static files + index skeleton, T2 listar + filtros, T3 crear/editar, T4 borrar + UX polish, T5 E2E tests + validate.sh.
 - **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 23 passed ✅ boot /health 200 ✅. `node --check app.js` OK. Push a GitHub OK.
 - **Notas**: fix de test T1 (content-type `text/css; charset=utf-8` → `startswith`); el router `auto/best-free` exige prompts mínimos (sin `@spec` completo) por límite 4K.
+
+## 2026-09-15 — F03: Ventas + Dashboard multi-página ✅
+- **Decisión stack & arquitectura**: ADR-004. Modelo `Sale` añadido vía `create_all` (sin Alembic). Descuento de stock atómico. Hash router en cliente vanilla (`#/dashboard`, `#/products`, `#/sales`). Umbral stock bajo en `STOCK_LOW_THRESHOLD = 5`.
+- **Estructura**: `app/models/sale.py`, `app/api/routes/sales.py`, `app/api/routes/stats.py`, frontend multi-página en `app/static/` (index.html con sidebar/cards, app.js router+vistas, style.css responsive).
+- **Build T1-T6**: T1 modelo Sale+config, T2 POST /api/sales+descuento, T3 GET sales+dashboard stats, T4 layout sidebar+dashboard, T5 vistas sales+products completas, T6 E2E tests (47 passed)+validate.sh.
+- **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 47 passed ✅ boot /health 200 ✅. Push a GitHub OK con tag `F03`.
