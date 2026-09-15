@@ -10,8 +10,16 @@ engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread":
 SessionLocal = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-__all__ = ["Product", "Sale", "SessionLocal", "engine", "init_db"]
+__all__ = ["Product", "Sale", "SessionLocal", "engine", "get_db", "init_db"]

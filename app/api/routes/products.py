@@ -3,18 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, col, select
 
-from app.database import SessionLocal
+from app.database import get_db
 from app.models.product import Product
 
 router = APIRouter(prefix="/api/products", tags=["products"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 Db = Annotated[Session, Depends(get_db)]
