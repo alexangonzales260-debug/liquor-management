@@ -349,3 +349,61 @@ form button {
   justify-self: start;
   margin-top: 0.5rem;
 }
+
+.sale-form-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.6rem 0.75rem;
+  align-items: center;
+}
+
+#sale-form select,
+#sale-form input[type="number"] {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--surface);
+}
+
+#sale-form select:focus,
+#sale-form input[type="number"]:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+#sales-table th,
+#sales-table td {
+  text-align: left;
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid #eaecef;
+}
+
+#sales-table th {
+  background: #f2f4f7;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+}
+
+#sales-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+#sales-table tbody tr:hover {
+  background: #f0f4fb;
+}
+
+#sales-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+#sales-table td[colspan] {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem 0.6rem;
+}

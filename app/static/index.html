@@ -94,8 +94,35 @@
 
       <section id="view-sales" class="view">
         <div class="card">
+          <h2>Nueva venta</h2>
+          <form id="sale-form">
+            <label for="sale-product">Producto</label>
+            <select id="sale-product" name="sale-product" required>
+              <option value="">Seleccionar producto...</option>
+            </select>
+
+            <label for="sale-qty">Cantidad</label>
+            <input id="sale-qty" name="sale-qty" type="number" min="1" value="1" required>
+
+            <button type="submit">Registrar venta</button>
+          </form>
+        </div>
+
+        <div class="card">
           <h2>Ventas</h2>
-          <p class="placeholder">La vista de ventas estará disponible próximamente.</p>
+          <table id="sales-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio unit. ($)</th>
+                <th>Total ($)</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
     </main>

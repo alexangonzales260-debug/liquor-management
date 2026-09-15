@@ -25,6 +25,8 @@ def test_root_serves_index_html(client: TestClient):
     assert 'id="filter-category"' in html
     assert 'id="filter-search"' in html
     assert 'id="status"' in html
+    assert 'id="sale-form"' in html
+    assert 'id="sales-table"' in html
 
 
 def test_products_table_has_presentational_headers(client: TestClient):
@@ -33,6 +35,42 @@ def test_products_table_has_presentational_headers(client: TestClient):
     assert table is not None
     headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
     assert headers == {"name", "category", "volume ml", "price", "stock"}
+
+
+def test_sales_table_has_presentational_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="sales-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {"id", "producto", "cantidad", "precio unit. ($)", "total ($)", "fecha"}
+
+
+def test_products_view_has_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="view-products"' in html
+    assert 'id="filter-search"' in html
+    assert 'id="filter-category"' in html
+    assert 'id="filter-apply"' in html
+    assert 'id="filter-clear"' in html
+    assert 'id="products-table"' in html
+    assert 'id="products-tbody"' in html
+    assert 'id="product-form"' in html
+    assert 'id="name"' in html
+    assert 'id="category"' in html
+    assert 'id="volume_ml"' in html
+    assert 'id="price_cents"' in html
+    assert 'id="stock"' in html
+    assert 'id="product-submit"' in html
+
+
+def test_sales_view_has_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="view-sales"' in html
+    assert 'id="sale-form"' in html
+    assert 'id="sale-product"' in html
+    assert 'id="sale-qty"' in html
+    assert 'id="sales-table"' in html
+    assert 'id="sales-table" tbody' in html or 'id="sales-table">\n            <thead' in html
 
 
 def test_multi_page_layout_present(client: TestClient):
