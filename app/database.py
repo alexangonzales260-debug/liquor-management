@@ -1,5 +1,5 @@
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
 from app.models.product import Product
