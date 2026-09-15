@@ -1,4 +1,17 @@
+import re
+from typing import Any
+
 from fastapi.testclient import TestClient
+
+VODKA = {"name": "Vodka", "category": "Spirits", "volume_ml": 750, "price_cents": 15000, "stock": 10}
+TEQUILA = {"name": "Tequila", "category": "Spirits", "volume_ml": 700, "price_cents": 21000, "stock": 5}
+MALBEC = {"name": "Malbec", "category": "Wine", "volume_ml": 750, "price_cents": 8000, "stock": 3}
+
+
+def create_product(client: TestClient, payload: dict[str, Any]) -> dict[str, Any]:
+    response = client.post("/api/products", json=payload)
+    assert response.status_code == 201
+    return response.json()
 
 
 def test_root_serves_index_html(client: TestClient):
@@ -14,10 +27,10 @@ def test_root_serves_index_html(client: TestClient):
     assert 'id="status"' in html
 
 
-def test_index_table_headers(client: TestClient):
+def test_index_table_has_presentational_headers(client: TestClient):
     html = client.get("/").text
-    for header in ["name", "category", "volume_ml", "price", "stock"]:
-        assert header in html
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", html)}
+    assert headers == {"name", "category", "volume ml", "price", "stock"}
 
 
 def test_static_style_css(client: TestClient):
@@ -29,6 +42,50 @@ def test_static_style_css(client: TestClient):
 def test_static_app_js(client: TestClient):
     response = client.get("/static/app.js")
     assert response.status_code == 200
+
+
+def test_full_roundtrip_create_list_edit_delete(client: TestClient):
+    created = create_product(client, VODKA)
+    product_id = created["id"]
+
+    listing = client.get("/api/products")
+    assert listing.status_code == 200
+    assert [p["name"] for p in listing.json()] == ["Vodka"]
+
+    updated = client.put(f"/api/products/{product_id}", json={**VODKA, "name": "Vodka Premium", "price_cents": 18000})
+    assert updated.status_code == 200
+    body = updated.json()
+    assert body["id"] == product_id
+    assert body["name"] == "Vodka Premium"
+    assert body["price_cents"] == 18000
+
+    deleted = client.delete(f"/api/products/{product_id}")
+    assert deleted.status_code == 204
+    assert client.get(f"/api/products/{product_id}").status_code == 404
+
+
+def test_filters_category_and_search(client: TestClient):
+    create_product(client, VODKA)
+    create_product(client, TEQUILA)
+    create_product(client, MALBEC)
+
+    by_category = client.get("/api/products", params={"category": "Spirits"})
+    assert by_category.status_code == 200
+    assert [p["name"] for p in by_category.json()] == ["Vodka", "Tequila"]
+
+    by_search = client.get("/api/products", params={"search": "ma"})
+    assert by_search.status_code == 200
+    assert [p["name"] for p in by_search.json()] == ["Malbec"]
+
+    combined = client.get("/api/products", params={"category": "Wine", "search": "ma"})
+    assert combined.status_code == 200
+    assert [p["name"] for p in combined.json()] == ["Malbec"]
+
+
+def test_invalid_post_returns_422(client: TestClient):
+    response = client.post("/api/products", json={"name": "Sin Stock", "stock": -1})
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "greater_than_equal"
 
 
 def test_health_and_api_still_work(client: TestClient):
