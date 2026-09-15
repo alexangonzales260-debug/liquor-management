@@ -27,10 +27,34 @@ def test_root_serves_index_html(client: TestClient):
     assert 'id="status"' in html
 
 
-def test_index_table_has_presentational_headers(client: TestClient):
+def test_products_table_has_presentational_headers(client: TestClient):
     html = client.get("/").text
-    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", html)}
+    table = re.search(r'<table id="products-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
     assert headers == {"name", "category", "volume ml", "price", "stock"}
+
+
+def test_multi_page_layout_present(client: TestClient):
+    html = client.get("/").text
+    assert "<header" in html
+    assert "Liquor Management" in html
+    assert 'href="#/dashboard"' in html
+    assert 'href="#/products"' in html
+    assert 'href="#/sales"' in html
+    assert 'id="view-dashboard"' in html
+    assert 'id="view-products"' in html
+    assert 'id="view-sales"' in html
+    assert 'id="dashboard-cards"' in html
+    assert 'id="low-stock-table"' in html
+
+
+def test_low_stock_table_has_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="low-stock-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {"producto", "stock"}
 
 
 def test_static_style_css(client: TestClient):

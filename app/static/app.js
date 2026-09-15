@@ -1,31 +1,36 @@
 "use strict";
 
 (function () {
+  const VIEWS = ["dashboard", "products", "sales"];
+  const DEFAULT_VIEW = "dashboard";
+
   const statusEl = document.querySelector("#status");
-  const productsBody = document.querySelector("#products-table tbody");
-  const searchEl = document.querySelector("#filter-search");
-  const categoryEl = document.querySelector("#filter-category");
-  const applyBtn = document.querySelector("#filter-apply");
-  const clearBtn = document.querySelector("#filter-clear");
+  const cardsEl = document.querySelector("#dashboard-cards");
+  const lowStockBody = document.querySelector("#low-stock-table tbody");
+  const viewEls = Array.prototype.slice.call(
+    document.querySelectorAll(".view"),
+  );
+  const navLinks = Array.prototype.slice.call(
+    document.querySelectorAll(".sidebar a"),
+  );
+  const sidebarToggleEl = document.querySelector("#sidebar-toggle");
 
-  const formEl = document.querySelector("#product-form");
-  const nameEl = document.querySelector("#name");
-  const productCategoryEl = document.querySelector("#category");
-  const volumeEl = document.querySelector("#volume_ml");
-  const priceEl = document.querySelector("#price_cents");
-  const stockEl = document.querySelector("#stock");
-  const submitBtn = document.querySelector("#product-submit");
+  function currentView() {
+    const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
+    return VIEWS.indexOf(base) !== -1 ? base : DEFAULT_VIEW;
+  }
 
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.id = "product-cancel";
-  cancelBtn.className = "secondary";
-  cancelBtn.textContent = "Cancelar";
-  cancelBtn.hidden = true;
-  formEl.appendChild(cancelBtn);
-
-  let currentParams = { category: "", search: "" };
-  let editingId = null;
+  function activateView(view) {
+    viewEls.forEach(function (el) {
+      el.classList.toggle("active", el.id === "view-" + view);
+    });
+    navLinks.forEach(function (link) {
+      link.classList.toggle(
+        "active",
+        link.getAttribute("data-view") === view,
+      );
+    });
+  }
 
   function setStatus(message, kind) {
     statusEl.textContent = message;
@@ -35,122 +40,64 @@
     }
   }
 
-  function formatPrice(priceCents) {
-    return "$" + (priceCents / 100).toFixed(2);
+  function formatMoney(cents) {
+    return "$" + (cents / 100).toFixed(2);
   }
 
-  function buildQueryString(params) {
-    const searchParams = new URLSearchParams();
-    if (params.category) {
-      searchParams.set("category", params.category);
-    }
-    if (params.search) {
-      searchParams.set("search", params.search);
-    }
-    const query = searchParams.toString();
-    return query ? "?" + query : "";
-  }
-
-  function resetForm() {
-    formEl.reset();
-    editingId = null;
-    submitBtn.textContent = "Guardar";
-    cancelBtn.hidden = true;
-  }
-
-  function startEdit(product) {
-    editingId = product.id;
-    nameEl.value = product.name;
-    productCategoryEl.value = product.category || "";
-    volumeEl.value = product.volume_ml === null ? "" : product.volume_ml;
-    priceEl.value = product.price_cents === null ? "" : product.price_cents;
-    stockEl.value = product.stock;
-    submitBtn.textContent = "Actualizar";
-    cancelBtn.hidden = false;
-    setStatus("Editando producto #" + product.id);
-  }
-
-  function renderProducts(products) {
-    productsBody.textContent = "";
-    if (!products.length) {
-      productsBody.innerHTML =
-        '<tr><td colspan="6" class="empty-row">No hay productos</td></tr>';
-      return;
-    }
-    products.forEach(function (product) {
-      const row = document.createElement("tr");
-
-      const name = document.createElement("td");
-      name.textContent = product.name;
-
-      const category = document.createElement("td");
-      category.textContent = product.category || "";
-
-      const volume = document.createElement("td");
-      volume.textContent = product.volume_ml + " ml";
-
-      const price = document.createElement("td");
-      price.textContent = formatPrice(product.price_cents);
-
-      const stock = document.createElement("td");
-      stock.textContent = product.stock;
-
-      const actions = document.createElement("td");
-      actions.className = "actions";
-      const editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.className = "secondary";
-      editBtn.textContent = "Editar";
-      editBtn.addEventListener("click", function () {
-        startEdit(product);
-      });
-      actions.appendChild(editBtn);
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.type = "button";
-      deleteBtn.className = "danger";
-      deleteBtn.textContent = "Borrar";
-      deleteBtn.addEventListener("click", function () {
-        const message =
-          '¿Borrar "' + product.name + '" (#' + product.id + ")?";
-        if (!window.confirm(message)) {
-          return;
-        }
-        setStatus("Eliminando producto #" + product.id + "...", "loading");
-        fetch("/api/products/" + product.id, { method: "DELETE" })
-          .then(function (response) {
-            if (response.status === 204) {
-              setStatus("");
-              fetchProducts(currentParams);
-              return;
-            }
-            return response.json().then(function (body) {
-              throw new Error(readApiError(body));
-            });
-          })
-          .catch(function (err) {
-            setStatus(err.message || "request failed", "error");
-          });
-      });
-      actions.appendChild(deleteBtn);
-
-      row.append(name, category, volume, price, stock, actions);
-      productsBody.appendChild(row);
+  function renderKpiCards(data) {
+    cardsEl.textContent = "";
+    const cards = [
+      { label: "Productos", value: String(data.total_products) },
+      { label: "Ventas", value: String(data.total_sales) },
+      { label: "Ingresos", value: formatMoney(data.total_revenue_cents) },
+    ];
+    cards.forEach(function (card) {
+      const el = document.createElement("div");
+      el.className = "kpi-card";
+      const label = document.createElement("span");
+      label.className = "kpi-label";
+      label.textContent = card.label;
+      const value = document.createElement("span");
+      value.className = "kpi-value";
+      value.textContent = card.value;
+      el.append(label, value);
+      cardsEl.appendChild(el);
     });
   }
 
-  function fetchProducts(params) {
-    setStatus("Cargando productos...", "loading");
-    fetch("/api/products" + buildQueryString(params))
+  function renderLowStock(rows) {
+    lowStockBody.textContent = "";
+    if (!rows.length) {
+      lowStockBody.innerHTML =
+        '<tr><td colspan="2" class="empty-row">Sin productos con stock bajo</td></tr>';
+      return;
+    }
+    rows.forEach(function (row) {
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.textContent = row.name;
+      const stock = document.createElement("td");
+      stock.textContent = row.stock;
+      tr.append(name, stock);
+      lowStockBody.appendChild(tr);
+    });
+  }
+
+  function loadDashboard() {
+    if (!statusEl || !cardsEl || !lowStockBody) {
+      return;
+    }
+    setStatus("Cargando dashboard...", "loading");
+    fetch("/api/stats/dashboard")
       .then(function (response) {
         if (!response.ok) {
           throw new Error("request failed");
         }
         return response.json();
       })
-      .then(function (products) {
-        currentParams = params;
-        renderProducts(products);
+      .then(function (data) {
+        renderKpiCards(data);
+        renderLowStock(data.low_stock || []);
         setStatus("");
       })
       .catch(function () {
@@ -158,112 +105,24 @@
       });
   }
 
-  function readFilters() {
-    return {
-      category: categoryEl.value.trim(),
-      search: searchEl.value.trim(),
-    };
-  }
-
-  function validateForm() {
-    if (!nameEl.value.trim()) {
-      return "El nombre es obligatorio";
-    }
-    const numericFields = [
-      ["volume_ml", volumeEl],
-      ["price_cents", priceEl],
-      ["stock", stockEl],
-    ];
-    for (let i = 0; i < numericFields.length; i++) {
-      const field = numericFields[i][0];
-      const input = numericFields[i][1];
-      const value = input.value.trim();
-      if (value !== "" && !/^\d+$/.test(value)) {
-        return field + " debe ser un entero mayor o igual a 0";
-      }
-    }
-    return "";
-  }
-
-  function buildPayload() {
-    const payload = { name: nameEl.value.trim() };
-    const categoryValue = productCategoryEl.value.trim();
-    if (categoryValue) {
-      payload.category = categoryValue;
-    }
-    const numericFields = [
-      ["volume_ml", volumeEl],
-      ["price_cents", priceEl],
-      ["stock", stockEl],
-    ];
-    numericFields.forEach(function (cfg) {
-      const field = cfg[0];
-      const input = cfg[1];
-      if (input.value.trim() !== "") {
-        payload[field] = parseInt(input.value, 10);
-      }
-    });
-    return payload;
-  }
-
-  function readApiError(body) {
-    if (body && Array.isArray(body.detail)) {
-      return body.detail
-        .map(function (issue) {
-          return issue.msg;
-        })
-        .join("; ");
-    }
-    if (body && typeof body.detail === "string") {
-      return body.detail;
-    }
-    return "request failed";
-  }
-
-  formEl.addEventListener("submit", function (event) {
-    event.preventDefault();
-    const error = validateForm();
-    if (error) {
-      setStatus(error, "error");
+  function route() {
+    const target = "#/" + DEFAULT_VIEW;
+    if (window.location.hash !== target && currentView() === DEFAULT_VIEW) {
+      window.location.hash = target;
       return;
     }
-    const url =
-      editingId === null ? "/api/products" : "/api/products/" + editingId;
-    const method = editingId === null ? "POST" : "PUT";
-    fetch(url, {
-      method: method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildPayload()),
-    })
-      .then(function (response) {
-        if (response.ok) {
-          resetForm();
-          fetchProducts(currentParams);
-          return;
-        }
-        return response.json().then(function (body) {
-          throw new Error(readApiError(body));
-        });
-      })
-      .catch(function (err) {
-        setStatus(err.message || "request failed", "error");
-      });
-  });
+    activateView(currentView());
+    if (currentView() === "dashboard") {
+      loadDashboard();
+    }
+  }
 
-  cancelBtn.addEventListener("click", function () {
-    resetForm();
-    setStatus("Edición cancelada");
-  });
+  if (sidebarToggleEl) {
+    sidebarToggleEl.addEventListener("click", function () {
+      document.querySelector(".sidebar").classList.toggle("collapsed");
+    });
+  }
 
-  applyBtn.addEventListener("click", function () {
-    fetchProducts(readFilters());
-  });
-
-  clearBtn.addEventListener("click", function () {
-    searchEl.value = "";
-    categoryEl.value = "";
-    fetchProducts({ category: "", search: "" });
-  });
-
-  fetchProducts(currentParams);
+  window.addEventListener("hashchange", route);
+  window.addEventListener("load", route);
 })();

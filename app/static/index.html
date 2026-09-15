@@ -3,65 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Bebidas</title>
+  <title>Liquor Management</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
-    <h1>Gestión de Bebidas</h1>
+  <header class="app-header">
+    <h1>Liquor Management</h1>
   </header>
 
-  <main>
-    <section id="status" class="status" aria-live="polite"></section>
-
-    <section class="card">
-      <h2>Filtros</h2>
-      <div id="filter-bar" class="filter-bar">
-        <input id="filter-search" type="text" placeholder="Buscar por nombre...">
-        <input id="filter-category" type="text" placeholder="Categoría">
-        <button id="filter-apply" type="button">Aplicar filtros</button>
-        <button id="filter-clear" type="button">Limpiar</button>
+  <div class="layout">
+    <nav class="sidebar" aria-label="Navegación principal">
+      <button id="sidebar-toggle" type="button" aria-label="Colapsar menú" title="Colapsar/expandir menú">&#9776;</button>
+      <div class="sidebar-links">
+        <a href="#/dashboard" data-view="dashboard">Dashboard</a>
+        <a href="#/products" data-view="products">Productos</a>
+        <a href="#/sales" data-view="sales">Ventas</a>
       </div>
-    </section>
+    </nav>
 
-    <section class="card">
-      <h2>Productos</h2>
-      <table id="products-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Volume ml</th>
-            <th>Price</th>
-            <th>Stock</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <main class="content">
+      <section id="view-dashboard" class="view">
+        <div id="status" class="status" aria-live="polite"></div>
 
-    <section class="card">
-      <h2>Producto</h2>
-      <form id="product-form">
-        <label for="name">Name</label>
-        <input id="name" name="name" type="text" required>
+        <h2>Dashboard</h2>
+        <div id="dashboard-cards" class="kpi-cards"></div>
 
-        <label for="category">Category</label>
-        <input id="category" name="category" type="text">
+        <section class="card">
+          <h2>Stock bajo</h2>
+          <table id="low-stock-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
 
-        <label for="volume_ml">Volume ml</label>
-        <input id="volume_ml" name="volume_ml" type="number" min="0" step="1">
+      <section id="view-products" class="view">
+        <div class="card">
+          <h2>Filtros</h2>
+          <div id="filter-bar" class="filter-bar">
+            <input id="filter-search" type="text" placeholder="Buscar por nombre...">
+            <input id="filter-category" type="text" placeholder="Categoría">
+            <button id="filter-apply" type="button">Aplicar filtros</button>
+            <button id="filter-clear" type="button">Limpiar</button>
+          </div>
+        </div>
 
-        <label for="price_cents">Price cents</label>
-        <input id="price_cents" name="price_cents" type="number" min="0" step="1">
+        <div class="card">
+          <h2>Productos</h2>
+          <table id="products-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Volume ml</th>
+                <th>Price</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody"></tbody>
+          </table>
+        </div>
 
-        <label for="stock">Stock</label>
-        <input id="stock" name="stock" type="number" min="0" step="1">
+        <div class="card">
+          <h2>Producto</h2>
+          <form id="product-form">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" required>
 
-        <button id="product-submit" type="submit">Guardar</button>
-      </form>
-    </section>
-  </main>
+            <label for="category">Category</label>
+            <input id="category" name="category" type="text">
+
+            <label for="volume_ml">Volume ml</label>
+            <input id="volume_ml" name="volume_ml" type="number" min="0" step="1">
+
+            <label for="price_cents">Price cents</label>
+            <input id="price_cents" name="price_cents" type="number" min="0" step="1">
+
+            <label for="stock">Stock</label>
+            <input id="stock" name="stock" type="number" min="0" step="1">
+
+            <button id="product-submit" type="submit">Guardar</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-sales" class="view">
+        <div class="card">
+          <h2>Ventas</h2>
+          <p class="placeholder">La vista de ventas estará disponible próximamente.</p>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>
