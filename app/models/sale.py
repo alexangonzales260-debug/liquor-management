@@ -11,4 +11,4 @@ class Sale(SQLModel, table=True):
     qty: int = Field(gt=0)
     unit_price_cents: int
     total_cents: int
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"nullable": False})

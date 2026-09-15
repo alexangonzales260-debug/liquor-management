@@ -19,7 +19,7 @@ class SaleInput(SQLModel):
 
 @router.get("", response_model=list[Sale])
 def list_sales(db: Db) -> list[Sale]:
-    statement = select(Sale).order_by(Sale.created_at.desc(), Sale.id.desc())
+    statement = select(Sale).order_by(Sale.created_at.desc(), Sale.id.desc())  # type: ignore[attr-defined,union-attr]
     return list(db.exec(statement).all())
 
 
