@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Field, Session, SQLModel
+from sqlmodel import Field, Session, SQLModel, select
 
 from app.database import get_db
 from app.models.product import Product
@@ -15,6 +15,12 @@ Db = Annotated[Session, Depends(get_db)]
 class SaleInput(SQLModel):
     product_id: int
     qty: int = Field(gt=0)
+
+
+@router.get("", response_model=list[Sale])
+def list_sales(db: Db) -> list[Sale]:
+    statement = select(Sale).order_by(Sale.created_at.desc(), Sale.id.desc())
+    return list(db.exec(statement).all())
 
 
 @router.post("", response_model=Sale, status_code=201)
