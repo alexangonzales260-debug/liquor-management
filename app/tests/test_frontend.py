@@ -584,6 +584,100 @@ def test_restocks_shows_po_link(client: TestClient):
     assert 'id="purchase-orders-table"' in html
 
 
+def test_e2e_supplier_to_po_to_receive_to_stock(client: TestClient):
+    supplier = client.post("/api/suppliers", json={"name": "Distribuidora Central"}).json()
+    product = create_product(client, {**VODKA, "stock": 5})
+    product_id = product["id"]
+
+    created_po = client.post(
+        "/api/purchase-orders",
+        json={
+            "supplier_id": supplier["id"],
+            "product_id": product_id,
+            "qty_ordered": 10,
+            "unit_cost_cents": 12000,
+            "notes": "Pedido inicial",
+        },
+    )
+    assert created_po.status_code == 201
+    po = created_po.json()
+    po_id = po["id"]
+    assert po["status"] == "pending"
+    assert po["qty_ordered"] == 10
+    assert po["qty_received"] == 0
+
+    partial = client.post(f"/api/purchase-orders/{po_id}/receive", json={"qty_received": 4})
+    assert partial.status_code == 201
+    partial_body = partial.json()
+    assert partial_body["po"]["status"] == "partial"
+    assert partial_body["po"]["qty_received"] == 4
+    restock_1 = partial_body["restock_id"]
+
+    product_after_partial = client.get(f"/api/products/{product_id}").json()
+    assert product_after_partial["stock"] == 9
+
+    restocks = client.get("/api/restocks").json()
+    first_restock = next(r for r in restocks if r["id"] == restock_1)
+    assert first_restock["qty"] == 4
+    assert first_restock["unit_cost_cents"] == 12000
+    assert first_restock["total_cost_cents"] == 48000
+    assert first_restock["purchase_order_id"] == po_id
+
+    complete = client.post(f"/api/purchase-orders/{po_id}/receive", json={"qty_received": 6})
+    assert complete.status_code == 201
+    complete_body = complete.json()
+    assert complete_body["po"]["status"] == "received"
+    assert complete_body["po"]["qty_received"] == 10
+    assert complete_body["po"]["received_date"] is not None
+    restock_2 = complete_body["restock_id"]
+    assert restock_2 != restock_1
+
+    product_final = client.get(f"/api/products/{product_id}").json()
+    assert product_final["stock"] == 15
+
+    po_detail = client.get(f"/api/purchase-orders/{po_id}").json()
+    assert po_detail["status"] == "received"
+    assert po_detail["qty_received"] == 10
+    assert restock_1 in po_detail["restock_ids"]
+    assert restock_2 in po_detail["restock_ids"]
+
+    js = client.get("/static/app.js").text
+    assert "restock.purchase_order_id" in js
+    assert 'href="#/purchase-orders?po=' in js
+    assert "po-link" in js
+
+    html = client.get("/").text
+    assert '<th>Orden</th>' in html
+    assert 'id="restocks-table"' in html
+    assert 'id="purchase-orders-table"' in html
+
+    pending_po = client.post(
+        "/api/purchase-orders",
+        json={
+            "supplier_id": supplier["id"],
+            "product_id": product_id,
+            "qty_ordered": 3,
+            "unit_cost_cents": 9000,
+        },
+    )
+    assert pending_po.status_code == 201
+    pending_id = pending_po.json()["id"]
+
+    cancelled = client.put(f"/api/purchase-orders/{pending_id}", json={"status": "cancelled"})
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "cancelled"
+
+    rejected = client.post(f"/api/purchase-orders/{pending_id}/receive", json={"qty_received": 1})
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"] == "Only pending or partial purchase orders can receive stock"
+
+    rejected_received = client.post(f"/api/purchase-orders/{po_id}/receive", json={"qty_received": 1})
+    assert rejected_received.status_code == 409
+
+    product_after_rejects = client.get(f"/api/products/{product_id}").json()
+    assert product_after_rejects["stock"] == 15
+
+
 def test_suppliers_navigation_link_and_view(client: TestClient):
     html = client.get("/").text
     assert 'href="#/suppliers"' in html
