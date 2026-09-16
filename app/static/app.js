@@ -81,8 +81,39 @@
   let pendingPOCancelId = null;
 
   function currentView() {
-    const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
+    const base = window.location.hash.replace(/^#\/?/, "").split("?")[0].split("/")[0];
     return VIEWS.indexOf(base) !== -1 ? base : DEFAULT_VIEW;
+  }
+
+  function poFromHash() {
+    const match = window.location.hash.match(/[?&]po=(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
+  function highlightRestockRows(poId) {
+    if (!poId || !restocksTableBody) {
+      return;
+    }
+    const row = restocksTableBody.querySelector('[data-po-id="' + poId + '"]');
+    if (row) {
+      row.classList.add("po-highlight");
+      if (row.scrollIntoView) {
+        row.scrollIntoView({ block: "center" });
+      }
+    }
+  }
+
+  function highlightPurchaseOrderRows(poId) {
+    if (!poId || !poTbody) {
+      return;
+    }
+    const row = poTbody.querySelector('[data-row-id="' + poId + '"]');
+    if (row) {
+      row.classList.add("po-highlight");
+      if (row.scrollIntoView) {
+        row.scrollIntoView({ block: "center" });
+      }
+    }
   }
 
   function activateView(view) {
@@ -646,7 +677,7 @@
         restocksTableBody.innerHTML = "";
         if (!restocks.length) {
           restocksTableBody.innerHTML =
-            '<tr><td colspan="7" class="empty-row">Sin reposiciones registradas</td></tr>';
+            '<tr><td colspan="8" class="empty-row">Sin reposiciones registradas</td></tr>';
           setStatus("");
           return;
         }
@@ -654,6 +685,7 @@
           const tr = document.createElement("tr");
           const product = productsCache.find(function (p) { return p.id === restock.product_id; });
           const productName = product ? product.name : "Desconocido";
+          tr.setAttribute("data-po-id", restock.purchase_order_id || "");
           tr.innerHTML =
             "<td>" + restock.id + "</td>" +
             "<td>" + productName + "</td>" +
@@ -661,9 +693,13 @@
             "<td>" + (restock.unit_cost_cents !== null ? formatMoney(restock.unit_cost_cents) : "") + "</td>" +
             "<td>" + (restock.total_cost_cents !== null ? formatMoney(restock.total_cost_cents) : "") + "</td>" +
             "<td>" + (restock.notes || "") + "</td>" +
+            "<td>" + (restock.purchase_order_id
+              ? '<a class="po-link" href="#/purchase-orders?po=' + restock.purchase_order_id + '">Orden #' + restock.purchase_order_id + "</a>"
+              : "—") + "</td>" +
             "<td>" + formatDate(restock.created_at) + "</td>";
           restocksTableBody.appendChild(tr);
         });
+        highlightRestockRows(poFromHash());
         setStatus("");
       })
       .catch(function () {
@@ -923,6 +959,7 @@
       .then(function (orders) {
         poCache = orders;
         renderPurchaseOrdersTable(orders);
+        highlightPurchaseOrderRows(poFromHash());
         setStatus("");
       })
       .catch(function () {
@@ -939,7 +976,14 @@
     }
     orders.forEach(function (order) {
       const tr = document.createElement("tr");
+      tr.setAttribute("data-row-id", order.id);
       let actions = '<td class="actions">';
+      if (order.restock_ids && order.restock_ids.length) {
+        actions +=
+          '<a class="po-link" href="#/restocks?po=' +
+          order.id +
+          '">Ver reposición</a>';
+      }
       if (order.status === "pending" || order.status === "partial") {
         actions +=
           '<button type="button" class="receive-po-btn" data-id="' +

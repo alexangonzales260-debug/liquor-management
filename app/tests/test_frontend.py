@@ -295,6 +295,29 @@ def test_dashboard_restock_button_redirects(client: TestClient):
     assert "restockProductSelect" in js
 
 
+def test_dashboard_restock_button_navigates(client: TestClient):
+    product = create_product(client, {**MALBEC, "stock": 3})
+    product_id = product["id"]
+
+    dashboard = client.get("/api/stats/dashboard").json()
+    assert any(p["id"] == product_id and p["stock"] == 3 for p in dashboard["low_stock"])
+
+    js = client.get("/static/app.js").text
+    assert "renderLowStock" in js
+    assert "Reponer" in js
+    assert "restock-btn" in js
+    assert "pendingRestockProductName = row.name" in js
+    assert 'window.location.hash = "#/restocks"' in js
+    assert "loadProductsForRestockSelect" in js
+    assert "pendingRestockProductName" in js
+    assert "restockProductSelect.value = String(selected.id)" in js
+
+    html = client.get("/").text
+    assert 'id="low-stock-table"' in html
+    assert 'id="restock-form"' in html
+    assert 'id="restock-product"' in html
+
+
 def test_full_roundtrip_create_list_edit_delete(client: TestClient):
     created = create_product(client, VODKA)
     product_id = created["id"]
@@ -432,7 +455,7 @@ def test_restocks_table_has_presentational_headers(client: TestClient):
     table = re.search(r'<table id="restocks-table">(.*?)</table>', html, re.DOTALL)
     assert table is not None
     headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
-    assert headers == {"id", "producto", "cantidad", "costo unit. ($)", "costo total ($)", "notas", "fecha"}
+    assert headers == {"id", "producto", "cantidad", "costo unit. ($)", "costo total ($)", "notas", "orden", "fecha"}
 
 
 def test_e2e_restocks_flow_increments_stock_and_updates_frontend(client: TestClient):
@@ -523,6 +546,42 @@ def test_e2e_restock_flow_dashboard_to_restock(client: TestClient):
 
     dashboard_after = client.get("/api/stats/dashboard").json()
     assert not any(p["id"] == product_id for p in dashboard_after["low_stock"])
+
+
+def test_restocks_shows_po_link(client: TestClient):
+    supplier = client.post("/api/suppliers", json={"name": "Proveedor PO"}).json()
+    product = create_product(client, {**VODKA, "stock": 5})
+    po = client.post(
+        "/api/purchase-orders",
+        json={
+            "supplier_id": supplier["id"],
+            "product_id": product["id"],
+            "qty_ordered": 5,
+            "unit_cost_cents": 12000,
+        },
+    ).json()
+
+    received = client.post(f"/api/purchase-orders/{po['id']}/receive", json={"qty_received": 5})
+    assert received.status_code == 201
+    restock_id = received.json()["restock_id"]
+
+    restocks = client.get("/api/restocks").json()
+    restock = next(r for r in restocks if r["id"] == restock_id)
+    assert restock["purchase_order_id"] == po["id"]
+
+    po_detail = client.get(f"/api/purchase-orders/{po['id']}").json()
+    assert restock_id in po_detail["restock_ids"]
+
+    js = client.get("/static/app.js").text
+    assert "loadRestocks" in js
+    assert "restock.purchase_order_id" in js
+    assert 'href="#/purchase-orders?po=' in js
+    assert "po-link" in js
+
+    html = client.get("/").text
+    assert '<th>Orden</th>' in html
+    assert 'id="restocks-table"' in html
+    assert 'id="purchase-orders-table"' in html
 
 
 def test_suppliers_navigation_link_and_view(client: TestClient):

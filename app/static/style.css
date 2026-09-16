@@ -701,3 +701,18 @@ form button {
   padding: 0.3rem 0.7rem;
   font-size: 0.85rem;
 }
+
+.po-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.po-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+tr.po-highlight td {
+  background: #eef4ff;
+}

@@ -56,6 +56,7 @@ class PurchaseOrderRead(SQLModel):
     expected_date: date | None = None
     received_date: date | None = None
     notes: str | None = None
+    restock_ids: list[int] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -100,12 +101,18 @@ def to_po_read(po: PurchaseOrder, db: Session) -> PurchaseOrderRead:
         expected_date=po.expected_date,
         received_date=po.received_date,
         notes=po.notes,
+        restock_ids=restock_ids_for(db, po.id),
         created_at=po.created_at,
     )
 
 
 def restock_count(db: Session, po_id: int) -> int:
     return db.exec(select(func.count(Restock.id)).where(Restock.purchase_order_id == po_id)).one()  # type: ignore[arg-type]
+
+
+def restock_ids_for(db: Session, po_id: int | None) -> list[int]:
+    statement = select(Restock).where(Restock.purchase_order_id == po_id)
+    return [r.id for r in db.exec(statement).all() if r.id is not None]
 
 
 @router.get("", response_model=list[PurchaseOrderRead])
