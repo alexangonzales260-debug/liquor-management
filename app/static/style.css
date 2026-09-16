@@ -291,6 +291,19 @@ button.danger:hover {
   border-color: #e89b94;
 }
 
+#low-stock-table .restock-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+#low-stock-table td.actions {
+  justify-content: flex-start;
+}
+
+#low-stock-table td.actions .restock-btn {
+  white-space: nowrap;
+}
+
 table {
   width: 100%;
   border-collapse: separate;

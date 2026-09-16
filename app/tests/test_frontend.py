@@ -281,6 +281,20 @@ def test_static_app_js(client: TestClient):
     assert response.status_code == 200
 
 
+def test_dashboard_restock_button_redirects(client: TestClient):
+    html = client.get("/").text
+    assert 'id="low-stock-table"' in html
+
+    js = client.get("/static/app.js").text
+    assert "renderLowStock" in js
+    assert "Reponer" in js
+    assert "restock-btn" in js
+    assert "pendingRestockProductName" in js
+    assert 'window.location.hash = "#/restocks"' in js
+    assert "loadProductsForRestockSelect" in js
+    assert "restockProductSelect" in js
+
+
 def test_full_roundtrip_create_list_edit_delete(client: TestClient):
     created = create_product(client, VODKA)
     product_id = created["id"]

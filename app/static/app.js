@@ -47,6 +47,7 @@
   let productsCache = [];
   let currentCategoryId = null;
   let categoriesCache = [];
+  let pendingRestockProductName = null;
 
   function currentView() {
     const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -113,7 +114,7 @@
     lowStockBody.textContent = "";
     if (!rows.length) {
       lowStockBody.innerHTML =
-        '<tr><td colspan="2" class="empty-row">Sin productos con stock bajo</td></tr>';
+        '<tr><td colspan="3" class="empty-row">Sin productos con stock bajo</td></tr>';
       return;
     }
     rows.forEach(function (row) {
@@ -122,7 +123,18 @@
       name.textContent = row.name;
       const stock = document.createElement("td");
       stock.textContent = row.stock;
-      tr.append(name, stock);
+      const actions = document.createElement("td");
+      actions.className = "actions";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary restock-btn";
+      button.textContent = "Reponer";
+      button.addEventListener("click", function () {
+        pendingRestockProductName = row.name;
+        window.location.hash = "#/restocks";
+      });
+      actions.appendChild(button);
+      tr.append(name, stock, actions);
       lowStockBody.appendChild(tr);
     });
   }
@@ -571,6 +583,18 @@
           option.textContent = product.name + (product.category ? " (" + product.category + ")" : "") + " - Stock: " + product.stock;
           restockProductSelect.appendChild(option);
         });
+        if (pendingRestockProductName) {
+          const selected = products.find(function (p) {
+            return p.name === pendingRestockProductName;
+          });
+          if (selected) {
+            restockProductSelect.value = String(selected.id);
+            if (restockQtyInput) {
+              restockQtyInput.focus();
+            }
+          }
+          pendingRestockProductName = null;
+        }
       })
       .catch(function () {
         setStatus("Error al cargar productos", "error");
