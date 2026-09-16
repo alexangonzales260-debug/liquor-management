@@ -19,3 +19,9 @@
 - **Estructura**: `app/models/sale.py`, `app/api/routes/sales.py`, `app/api/routes/stats.py`, frontend multi-página en `app/static/` (index.html con sidebar/cards, app.js router+vistas, style.css responsive).
 - **Build T1-T6**: T1 modelo Sale+config, T2 POST /api/sales+descuento, T3 GET sales+dashboard stats, T4 layout sidebar+dashboard, T5 vistas sales+products completas, T6 E2E tests (47 passed)+validate.sh.
 - **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 47 passed ✅ boot /health 200 ✅. Push a GitHub OK con tag `F03`.
+
+## 2026-09-15 — F04: Gestión de Categorías ✅
+- **Decisión stack & arquitectura**: ADR-005. Modelo `Category` añadido vía `create_all`. Endpoints CRUD en `/api/categories` con conteo de productos, validación de unicidad de nombre y protección de borrado si hay productos asociados. Cascada de actualización de nombre hacia productos.
+- **Estructura**: `app/models/category.py`, `app/api/routes/categories.py`, tests en `app/tests/test_categories.py`, vista `#/categories` en frontend y selects dinámicos en formulario/filtros de productos.
+- **Build T1-T5**: T1 modelo Category+db init, T2 API CRUD categorías+tests, T3 frontend vista categorías+navegación hash, T4 integración en vista productos (selects dinámicos), T5 E2E tests+docs README+validate.sh.
+- **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 69 passed ✅ boot /health 200 ✅. Push a GitHub OK con tag `F04`.
