@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  const VIEWS = ["dashboard", "products", "sales"];
+  const VIEWS = ["dashboard", "products", "sales", "categories"];
   const DEFAULT_VIEW = "dashboard";
 
   const statusEl = document.querySelector("#status");
@@ -28,8 +28,17 @@
   const filterApplyBtn = document.querySelector("#filter-apply");
   const filterClearBtn = document.querySelector("#filter-clear");
 
+  const categoryForm = document.querySelector("#category-form");
+  const categoryNameInput = document.querySelector("#category-name");
+  const categoryDescInput = document.querySelector("#category-description");
+  const categorySubmitBtn = document.querySelector("#category-submit");
+  const categoryCancelBtn = document.querySelector("#category-cancel");
+  const categoriesTbody = document.querySelector("#categories-tbody");
+
   let currentProductId = null;
   let productsCache = [];
+  let currentCategoryId = null;
+  let categoriesCache = [];
 
   function currentView() {
     const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -371,6 +380,138 @@
     loadProductsList();
   }
 
+  function apiErrorDetail(data, fallback) {
+    if (data && data.detail) {
+      if (Array.isArray(data.detail)) {
+        return data.detail.map(function (err) { return err.msg || err; }).join("; ");
+      }
+      return data.detail;
+    }
+    return fallback;
+  }
+
+  function loadCategories() {
+    if (!statusEl || !categoriesTbody) {
+      return;
+    }
+    setStatus("Cargando categorías...", "loading");
+    fetch("/api/categories")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load categories");
+        return response.json();
+      })
+      .then(function (categories) {
+        categoriesCache = categories;
+        renderCategoriesTable(categories);
+        setStatus("");
+      })
+      .catch(function () {
+        setStatus("Error al cargar categorías", "error");
+      });
+  }
+
+  function renderCategoriesTable(categories) {
+    categoriesTbody.innerHTML = "";
+    if (!categories.length) {
+      categoriesTbody.innerHTML =
+        '<tr><td colspan="5" class="empty-row">Sin categorías</td></tr>';
+      return;
+    }
+    categories.forEach(function (category) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + category.id + "</td>" +
+        "<td>" + (category.name || "") + "</td>" +
+        "<td>" + (category.description || "") + "</td>" +
+        "<td>" + category.products_count + "</td>" +
+        '<td class="actions">' +
+          '<button type="button" class="edit-category-btn" data-id="' + category.id + '">Editar</button>' +
+          '<button type="button" class="danger delete-category-btn" data-id="' + category.id + '">Borrar</button>' +
+        "</td>";
+      categoriesTbody.appendChild(tr);
+    });
+  }
+
+  function clearCategoryForm() {
+    categoryForm.reset();
+    currentCategoryId = null;
+    categorySubmitBtn.textContent = "Guardar";
+    categoryCancelBtn.classList.add("hidden");
+  }
+
+  function fillCategoryForm(category) {
+    currentCategoryId = category.id;
+    categoryNameInput.value = category.name;
+    categoryDescInput.value = category.description || "";
+    categorySubmitBtn.textContent = "Actualizar";
+    categoryCancelBtn.classList.remove("hidden");
+  }
+
+  function handleCategorySubmit(event) {
+    event.preventDefault();
+    const payload = {
+      name: categoryNameInput.value.trim(),
+      description: categoryDescInput.value.trim() || null,
+    };
+
+    if (!payload.name) {
+      setStatus("El nombre es obligatorio", "error");
+      return;
+    }
+
+    const url = currentCategoryId ? "/api/categories/" + currentCategoryId : "/api/categories";
+    const method = currentCategoryId ? "PUT" : "POST";
+
+    setStatus(currentCategoryId ? "Actualizando..." : "Guardando...", "loading");
+    fetch(url, {
+      method: method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (data) {
+            throw new Error(apiErrorDetail(data, "Error al guardar"));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        setStatus(currentCategoryId ? "Categoría actualizada" : "Categoría creada", "loading");
+        clearCategoryForm();
+        loadCategories();
+      })
+      .catch(function (error) {
+        setStatus(error.message, "error");
+      });
+  }
+
+  function handleCategoryAction(event) {
+    const target = event.target;
+    if (target.classList.contains("edit-category-btn")) {
+      const categoryId = parseInt(target.getAttribute("data-id"), 10);
+      const category = categoriesCache.find(function (c) { return c.id === categoryId; });
+      if (category) fillCategoryForm(category);
+    } else if (target.classList.contains("delete-category-btn")) {
+      const categoryId = parseInt(target.getAttribute("data-id"), 10);
+      if (!confirm("¿Eliminar esta categoría?")) return;
+      setStatus("Eliminando...", "loading");
+      fetch("/api/categories/" + categoryId, { method: "DELETE" })
+        .then(function (response) {
+          if (!response.ok) {
+            return response.json().then(function (data) {
+              throw new Error(apiErrorDetail(data, "Error al eliminar"));
+            });
+          }
+          setStatus("Categoría eliminada", "loading");
+          loadCategories();
+        })
+        .catch(function (error) {
+          setStatus(error.message, "error");
+        });
+    }
+  }
+
   function route() {
     const target = "#/" + DEFAULT_VIEW;
     if (window.location.hash !== target && currentView() === DEFAULT_VIEW) {
@@ -386,6 +527,8 @@
       loadSales();
     } else if (view === "products") {
       loadProductsList();
+    } else if (view === "categories") {
+      loadCategories();
     }
   }
 
@@ -413,6 +556,18 @@
 
   if (filterClearBtn) {
     filterClearBtn.addEventListener("click", clearFilters);
+  }
+
+  if (categoryForm) {
+    categoryForm.addEventListener("submit", handleCategorySubmit);
+  }
+
+  if (categoryCancelBtn) {
+    categoryCancelBtn.addEventListener("click", clearCategoryForm);
+  }
+
+  if (categoriesTbody) {
+    categoriesTbody.addEventListener("click", handleCategoryAction);
   }
 
   window.addEventListener("hashchange", route);

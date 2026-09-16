@@ -18,6 +18,7 @@
         <a href="#/dashboard" data-view="dashboard">Dashboard</a>
         <a href="#/products" data-view="products">Productos</a>
         <a href="#/sales" data-view="sales">Ventas</a>
+        <a href="#/categories" data-view="categories">Categorías</a>
       </div>
     </nav>
 
@@ -123,6 +124,39 @@
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </section>
+    <section id="view-categories" class="view">
+        <div class="card">
+          <h2>Categorías</h2>
+          <table id="categories-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Productos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categories-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Categoría</h2>
+          <form id="category-form">
+            <label for="category-name">Nombre</label>
+            <input id="category-name" name="category-name" type="text" required>
+
+            <label for="category-description">Descripción</label>
+            <input id="category-description" name="category-description" type="text">
+
+            <div class="form-actions">
+              <button id="category-submit" type="submit">Guardar</button>
+              <button id="category-cancel" type="button" class="secondary hidden">Cancelar</button>
+            </div>
+          </form>
         </div>
       </section>
     </main>

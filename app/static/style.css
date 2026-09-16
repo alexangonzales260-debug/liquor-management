@@ -407,3 +407,53 @@ form button {
   color: var(--text-muted);
   padding: 1.5rem 0.6rem;
 }
+
+.hidden {
+  display: none;
+}
+
+#categories-table th,
+#categories-table td {
+  text-align: left;
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid #eaecef;
+}
+
+#categories-table th {
+  background: #f2f4f7;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+}
+
+#categories-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+#categories-table tbody tr:hover {
+  background: #f0f4fb;
+}
+
+#categories-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+#categories-table td[colspan] {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem 0.6rem;
+}
+
+#category-form .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+#category-form .form-actions button {
+  margin-top: 0;
+}

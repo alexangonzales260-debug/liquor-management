@@ -21,9 +21,11 @@ def test_hash_routing_layout(client: TestClient):
     assert 'href="#/dashboard"' in html
     assert 'href="#/products"' in html
     assert 'href="#/sales"' in html
+    assert 'href="#/categories"' in html
     assert 'id="view-dashboard"' in html
     assert 'id="view-products"' in html
     assert 'id="view-sales"' in html
+    assert 'id="view-categories"' in html
 
 
 def test_dashboard_view_elements(client: TestClient):
@@ -246,9 +248,11 @@ def test_multi_page_layout_present(client: TestClient):
     assert 'href="#/dashboard"' in html
     assert 'href="#/products"' in html
     assert 'href="#/sales"' in html
+    assert 'href="#/categories"' in html
     assert 'id="view-dashboard"' in html
     assert 'id="view-products"' in html
     assert 'id="view-sales"' in html
+    assert 'id="view-categories"' in html
     assert 'id="dashboard-cards"' in html
     assert 'id="low-stock-table"' in html
 
@@ -319,3 +323,27 @@ def test_invalid_post_returns_422(client: TestClient):
 def test_health_and_api_still_work(client: TestClient):
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/api/products").status_code == 200
+
+
+def test_categories_navigation_link_and_view(client: TestClient):
+    html = client.get("/").text
+    assert 'href="#/categories"' in html
+    assert 'data-view="categories"' in html
+    assert 'id="view-categories"' in html
+
+
+def test_categories_form_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="category-form"' in html
+    assert 'id="category-name"' in html
+    assert 'id="category-description"' in html
+    assert 'id="category-submit"' in html
+    assert 'id="category-cancel"' in html
+
+
+def test_categories_table_has_presentational_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="categories-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {"id", "nombre", "descripción", "productos", "acciones"}
