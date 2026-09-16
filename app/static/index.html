@@ -19,6 +19,7 @@
         <a href="#/products" data-view="products">Productos</a>
         <a href="#/sales" data-view="sales">Ventas</a>
         <a href="#/categories" data-view="categories">Categorías</a>
+        <a href="#/restocks" data-view="restocks">Reposiciones</a>
       </div>
     </nav>
 
@@ -161,6 +162,47 @@
               <button id="category-cancel" type="button" class="secondary hidden">Cancelar</button>
             </div>
           </form>
+        </div>
+      </section>
+
+      <section id="view-restocks" class="view">
+        <div class="card">
+          <h2>Nueva reposición</h2>
+          <form id="restock-form">
+            <label for="restock-product">Producto</label>
+            <select id="restock-product" name="restock-product" required>
+              <option value="">Seleccionar producto...</option>
+            </select>
+
+            <label for="restock-qty">Cantidad</label>
+            <input id="restock-qty" name="restock-qty" type="number" min="1" value="1" required>
+
+            <label for="restock-unit-cost">Costo unit. (centavos)</label>
+            <input id="restock-unit-cost" name="restock-unit-cost" type="number" min="0" step="1">
+
+            <label for="restock-notes">Notas</label>
+            <input id="restock-notes" name="restock-notes" type="text">
+
+            <button type="submit">Registrar reposición</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Historial de reposiciones</h2>
+          <table id="restocks-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Costo unit. ($)</th>
+                <th>Costo total ($)</th>
+                <th>Notas</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
     </main>

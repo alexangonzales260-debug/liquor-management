@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  const VIEWS = ["dashboard", "products", "sales", "categories"];
+  const VIEWS = ["dashboard", "products", "sales", "categories", "restocks"];
   const DEFAULT_VIEW = "dashboard";
 
   const statusEl = document.querySelector("#status");
@@ -35,6 +35,13 @@
   const categorySubmitBtn = document.querySelector("#category-submit");
   const categoryCancelBtn = document.querySelector("#category-cancel");
   const categoriesTbody = document.querySelector("#categories-tbody");
+
+  const restockForm = document.querySelector("#restock-form");
+  const restockProductSelect = document.querySelector("#restock-product");
+  const restockQtyInput = document.querySelector("#restock-qty");
+  const restockUnitCostInput = document.querySelector("#restock-unit-cost");
+  const restockNotesInput = document.querySelector("#restock-notes");
+  const restocksTableBody = document.querySelector("#restocks-table tbody");
 
   let currentProductId = null;
   let productsCache = [];
@@ -549,6 +556,111 @@
     }
   }
 
+  function loadProductsForRestockSelect() {
+    fetch("/api/products")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load products");
+        return response.json();
+      })
+      .then(function (products) {
+        productsCache = products;
+        restockProductSelect.innerHTML = '<option value="">Seleccionar producto...</option>';
+        products.forEach(function (product) {
+          const option = document.createElement("option");
+          option.value = product.id;
+          option.textContent = product.name + (product.category ? " (" + product.category + ")" : "") + " - Stock: " + product.stock;
+          restockProductSelect.appendChild(option);
+        });
+      })
+      .catch(function () {
+        setStatus("Error al cargar productos", "error");
+      });
+  }
+
+  function loadRestocks() {
+    if (!statusEl || !restocksTableBody) {
+      return;
+    }
+    setStatus("Cargando reposiciones...", "loading");
+    fetch("/api/restocks")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load restocks");
+        return response.json();
+      })
+      .then(function (restocks) {
+        restocksTableBody.innerHTML = "";
+        if (!restocks.length) {
+          restocksTableBody.innerHTML =
+            '<tr><td colspan="7" class="empty-row">Sin reposiciones registradas</td></tr>';
+          setStatus("");
+          return;
+        }
+        restocks.forEach(function (restock) {
+          const tr = document.createElement("tr");
+          const product = productsCache.find(function (p) { return p.id === restock.product_id; });
+          const productName = product ? product.name : "Desconocido";
+          tr.innerHTML =
+            "<td>" + restock.id + "</td>" +
+            "<td>" + productName + "</td>" +
+            "<td>" + restock.qty + "</td>" +
+            "<td>" + (restock.unit_cost_cents !== null ? formatMoney(restock.unit_cost_cents) : "") + "</td>" +
+            "<td>" + (restock.total_cost_cents !== null ? formatMoney(restock.total_cost_cents) : "") + "</td>" +
+            "<td>" + (restock.notes || "") + "</td>" +
+            "<td>" + formatDate(restock.created_at) + "</td>";
+          restocksTableBody.appendChild(tr);
+        });
+        setStatus("");
+      })
+      .catch(function () {
+        setStatus("Error al cargar reposiciones", "error");
+      });
+  }
+
+  function handleRestockSubmit(event) {
+    event.preventDefault();
+    const productId = parseInt(restockProductSelect.value, 10);
+    const qty = parseInt(restockQtyInput.value, 10);
+    const unitCostValue = restockUnitCostInput.value.trim();
+    const unitCostCents = unitCostValue === "" ? null : parseInt(unitCostValue, 10);
+    const notes = restockNotesInput.value.trim() || null;
+
+    if (!productId || isNaN(qty) || qty < 1) {
+      setStatus("Selecciona un producto y una cantidad válida", "error");
+      return;
+    }
+
+    setStatus("Registrando reposición...", "loading");
+    fetch("/api/restocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_id: productId,
+        qty: qty,
+        unit_cost_cents: unitCostCents,
+        notes: notes,
+      }),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (data) {
+            throw new Error(apiErrorDetail(data, "Error al registrar reposición"));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        setStatus("Reposición registrada", "loading");
+        restockForm.reset();
+        restockQtyInput.value = "1";
+        loadProductsForRestockSelect();
+        loadRestocks();
+        loadDashboard();
+      })
+      .catch(function (error) {
+        setStatus(error.message, "error");
+      });
+  }
+
   function route() {
     const target = "#/" + DEFAULT_VIEW;
     if (window.location.hash !== target && currentView() === DEFAULT_VIEW) {
@@ -567,6 +679,9 @@
       loadProductsList();
     } else if (view === "categories") {
       loadCategories();
+    } else if (view === "restocks") {
+      loadProductsForRestockSelect();
+      loadRestocks();
     }
   }
 
@@ -606,6 +721,10 @@
 
   if (categoriesTbody) {
     categoriesTbody.addEventListener("click", handleCategoryAction);
+  }
+
+  if (restockForm) {
+    restockForm.addEventListener("submit", handleRestockSubmit);
   }
 
   window.addEventListener("hashchange", route);

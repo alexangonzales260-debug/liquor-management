@@ -23,10 +23,12 @@ def test_hash_routing_layout(client: TestClient):
     assert 'href="#/products"' in html
     assert 'href="#/sales"' in html
     assert 'href="#/categories"' in html
+    assert 'href="#/restocks"' in html
     assert 'id="view-dashboard"' in html
     assert 'id="view-products"' in html
     assert 'id="view-sales"' in html
     assert 'id="view-categories"' in html
+    assert 'id="view-restocks"' in html
 
 
 def test_dashboard_view_elements(client: TestClient):
@@ -250,10 +252,12 @@ def test_multi_page_layout_present(client: TestClient):
     assert 'href="#/products"' in html
     assert 'href="#/sales"' in html
     assert 'href="#/categories"' in html
+    assert 'href="#/restocks"' in html
     assert 'id="view-dashboard"' in html
     assert 'id="view-products"' in html
     assert 'id="view-sales"' in html
     assert 'id="view-categories"' in html
+    assert 'id="view-restocks"' in html
     assert 'id="dashboard-cards"' in html
     assert 'id="low-stock-table"' in html
 
@@ -389,3 +393,66 @@ def test_e2e_categories_flow_create_product_link_cascade_delete(client: TestClie
     deleted_category = client.delete(f"/api/categories/{category_id}")
     assert deleted_category.status_code == 204
     assert client.get(f"/api/categories/{category_id}").status_code == 404
+
+
+def test_restocks_navigation_link_and_view(client: TestClient):
+    html = client.get("/").text
+    assert 'href="#/restocks"' in html
+    assert 'data-view="restocks"' in html
+    assert 'id="view-restocks"' in html
+
+
+def test_restocks_view_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="view-restocks"' in html
+    assert 'id="restock-form"' in html
+    assert 'id="restock-product"' in html
+    assert 'id="restock-qty"' in html
+    assert 'id="restock-unit-cost"' in html
+    assert 'id="restock-notes"' in html
+    assert 'id="restocks-table"' in html
+
+
+def test_restocks_table_has_presentational_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="restocks-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {"id", "producto", "cantidad", "costo unit. ($)", "costo total ($)", "notas", "fecha"}
+
+
+def test_e2e_restocks_flow_increments_stock_and_updates_frontend(client: TestClient):
+    product = create_product(client, {**VODKA, "stock": 10})
+    product_id = product["id"]
+
+    restock_response = client.post(
+        "/api/restocks",
+        json={
+            "product_id": product_id,
+            "qty": 5,
+            "unit_cost_cents": 12000,
+            "notes": "Reabastecimiento",
+        },
+    )
+    assert restock_response.status_code == 201
+    restock = restock_response.json()
+    assert restock["product_id"] == product_id
+    assert restock["qty"] == 5
+    assert restock["unit_cost_cents"] == 12000
+    assert restock["total_cost_cents"] == 60000
+    assert restock["notes"] == "Reabastecimiento"
+
+    updated_product = client.get(f"/api/products/{product_id}").json()
+    assert updated_product["stock"] == 15
+
+    restocks = client.get("/api/restocks").json()
+    assert len(restocks) == 1
+    assert restocks[0]["id"] == restock["id"]
+    assert restocks[0]["qty"] == 5
+
+    dashboard = client.get("/api/stats/dashboard").json()
+    assert dashboard["total_products"] == 1
+
+    html = client.get("/").text
+    assert 'id="restock-form"' in html
+    assert 'id="restocks-table"' in html
