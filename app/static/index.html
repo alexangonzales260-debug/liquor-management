@@ -48,7 +48,9 @@
           <h2>Filtros</h2>
           <div id="filter-bar" class="filter-bar">
             <input id="filter-search" type="text" placeholder="Buscar por nombre...">
-            <input id="filter-category" type="text" placeholder="Categoría">
+            <select id="filter-category" name="filter-category">
+              <option value="">Todas las categorías</option>
+            </select>
             <button id="filter-apply" type="button">Aplicar filtros</button>
             <button id="filter-clear" type="button">Limpiar</button>
           </div>
@@ -77,7 +79,9 @@
             <input id="name" name="name" type="text" required>
 
             <label for="category">Category</label>
-            <input id="category" name="category" type="text">
+            <select id="category" name="category">
+              <option value="">-- Sin categoría --</option>
+            </select>
 
             <label for="volume_ml">Volume ml</label>
             <input id="volume_ml" name="volume_ml" type="number" min="0" step="1">

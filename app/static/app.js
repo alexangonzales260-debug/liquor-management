@@ -27,6 +27,7 @@
   const filterCategory = document.querySelector("#filter-category");
   const filterApplyBtn = document.querySelector("#filter-apply");
   const filterClearBtn = document.querySelector("#filter-clear");
+  const categorySelect = document.querySelector("#category");
 
   const categoryForm = document.querySelector("#category-form");
   const categoryNameInput = document.querySelector("#category-name");
@@ -281,6 +282,7 @@
 
   function clearProductForm() {
     productForm.reset();
+    categorySelect.value = "";
     currentProductId = null;
     productSubmitBtn.textContent = "Guardar";
     productForm.querySelectorAll("input").forEach(function (input) {
@@ -291,7 +293,7 @@
   function fillProductForm(product) {
     currentProductId = product.id;
     document.querySelector("#name").value = product.name;
-    document.querySelector("#category").value = product.category || "";
+    categorySelect.value = product.category || "";
     document.querySelector("#volume_ml").value = product.volume_ml || "";
     document.querySelector("#price_cents").value = product.price_cents !== null ? product.price_cents : "";
     document.querySelector("#stock").value = product.stock;
@@ -302,7 +304,7 @@
     event.preventDefault();
     const payload = {
       name: document.querySelector("#name").value.trim(),
-      category: document.querySelector("#category").value.trim() || null,
+      category: categorySelect.value.trim() || null,
       volume_ml: parseInt(document.querySelector("#volume_ml").value, 10) || null,
       price_cents: parseInt(document.querySelector("#price_cents").value, 10) || null,
       stock: parseInt(document.querySelector("#stock").value, 10) || 0,
@@ -388,6 +390,40 @@
       return data.detail;
     }
     return fallback;
+  }
+
+  function loadCategoriesForProductSelects() {
+    if (!categorySelect || !filterCategory) {
+      return;
+    }
+    fetch("/api/categories")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load categories");
+        return response.json();
+      })
+      .then(function (categories) {
+        function buildOptions(defaultLabel) {
+          const fragment = document.createDocumentFragment();
+          const defaultOption = document.createElement("option");
+          defaultOption.value = "";
+          defaultOption.textContent = defaultLabel;
+          fragment.appendChild(defaultOption);
+          categories.forEach(function (category) {
+            const option = document.createElement("option");
+            option.value = category.name;
+            option.textContent = category.name;
+            fragment.appendChild(option);
+          });
+          return fragment;
+        }
+        categorySelect.textContent = "";
+        categorySelect.appendChild(buildOptions("-- Sin categoría --"));
+        filterCategory.textContent = "";
+        filterCategory.appendChild(buildOptions("Todas las categorías"));
+      })
+      .catch(function () {
+        setStatus("Error al cargar categorías", "error");
+      });
   }
 
   function loadCategories() {
@@ -480,6 +516,7 @@
         setStatus(currentCategoryId ? "Categoría actualizada" : "Categoría creada", "loading");
         clearCategoryForm();
         loadCategories();
+        loadCategoriesForProductSelects();
       })
       .catch(function (error) {
         setStatus(error.message, "error");
@@ -526,6 +563,7 @@
       loadProductsForSaleSelect();
       loadSales();
     } else if (view === "products") {
+      loadCategoriesForProductSelects();
       loadProductsList();
     } else if (view === "categories") {
       loadCategories();
