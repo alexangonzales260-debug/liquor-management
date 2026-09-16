@@ -470,3 +470,56 @@ def test_e2e_restocks_flow_increments_stock_and_updates_frontend(client: TestCli
     html = client.get("/").text
     assert 'id="restock-form"' in html
     assert 'id="restocks-table"' in html
+
+
+def test_e2e_restock_flow_dashboard_to_restock(client: TestClient):
+    product = create_product(client, {**MALBEC, "stock": 3})
+    product_id = product["id"]
+
+    dashboard_before = client.get("/api/stats/dashboard").json()
+    low_stock_before = dashboard_before["low_stock"]
+    assert any(p["id"] == product_id and p["stock"] == 3 for p in low_stock_before)
+
+    js = client.get("/static/app.js").text
+    assert "renderLowStock" in js
+    assert "Reponer" in js
+    assert "restock-btn" in js
+    assert "pendingRestockProductName" in js
+    assert 'window.location.hash = "#/restocks"' in js
+    assert "loadProductsForRestockSelect" in js
+    assert "restockProductSelect" in js
+
+    html = client.get("/").text
+    assert 'id="low-stock-table"' in html
+    assert 'id="restock-form"' in html
+    assert 'id="restock-product"' in html
+
+    restock_response = client.post(
+        "/api/restocks",
+        json={
+            "product_id": product_id,
+            "qty": 5,
+            "unit_cost_cents": 9000,
+            "notes": "Reposición urgente",
+        },
+    )
+    assert restock_response.status_code == 201
+    restock = restock_response.json()
+    assert restock["product_id"] == product_id
+    assert restock["qty"] == 5
+    assert restock["unit_cost_cents"] == 9000
+    assert restock["total_cost_cents"] == 45000
+    assert restock["notes"] == "Reposición urgente"
+
+    updated_product = client.get(f"/api/products/{product_id}").json()
+    assert updated_product["stock"] == 8
+
+    restocks = client.get("/api/restocks").json()
+    assert len(restocks) == 1
+    assert restocks[0]["id"] == restock["id"]
+    assert restocks[0]["qty"] == 5
+    assert restocks[0]["total_cost_cents"] == 45000
+    assert restocks[0]["notes"] == "Reposición urgente"
+
+    dashboard_after = client.get("/api/stats/dashboard").json()
+    assert not any(p["id"] == product_id for p in dashboard_after["low_stock"])
