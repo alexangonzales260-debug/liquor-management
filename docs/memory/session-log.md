@@ -25,3 +25,9 @@
 - **Estructura**: `app/models/category.py`, `app/api/routes/categories.py`, tests en `app/tests/test_categories.py`, vista `#/categories` en frontend y selects dinámicos en formulario/filtros de productos.
 - **Build T1-T5**: T1 modelo Category+db init, T2 API CRUD categorías+tests, T3 frontend vista categorías+navegación hash, T4 integración en vista productos (selects dinámicos), T5 E2E tests+docs README+validate.sh.
 - **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 69 passed ✅ boot /health 200 ✅. Push a GitHub OK con tag `F04`.
+
+## 2026-09-15 — F05: Entradas / Reposición de Stock ✅
+- **Decisión stack & arquitectura**: ADR-006. Modelo `Restock` añadido vía `create_all`. Endpoints en `/api/restocks` con cálculo de costo total opcional, incremento atómico de stock en transacción, historial ordenado por fecha desc. Frontend vista `#/restocks` con formulario e historial, botón "Reponer" en dashboard que navega pre-seleccionando producto.
+- **Estructura**: `app/models/restock.py`, `app/api/routes/restocks.py`, tests en `app/tests/test_restocks.py`, vista `#/restocks` en frontend, botón "Reponer" en dashboard.
+- **Build T1-T5**: T1 modelo Restock+db init, T2 API POST/GET restocks+tests, T3 frontend vista restocks+hash routing, T4 botón "Reponer" en dashboard, T5 E2E tests+docs README+validate.sh.
+- **Verificación final**: `./validate.sh` → ruff ✅ mypy ✅ pytest 81 passed ✅ boot /health 200 ✅. Push a GitHub OK con tag `F05`.
