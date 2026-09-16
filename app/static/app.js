@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  const VIEWS = ["dashboard", "products", "sales", "categories", "restocks"];
+  const VIEWS = ["dashboard", "products", "sales", "categories", "restocks", "suppliers"];
   const DEFAULT_VIEW = "dashboard";
 
   const statusEl = document.querySelector("#status");
@@ -43,11 +43,25 @@
   const restockNotesInput = document.querySelector("#restock-notes");
   const restocksTableBody = document.querySelector("#restocks-table tbody");
 
+  const supplierForm = document.querySelector("#supplier-form");
+  const supplierNameInput = document.querySelector("#supplier-name");
+  const supplierContactInput = document.querySelector("#supplier-contact");
+  const supplierEmailInput = document.querySelector("#supplier-email");
+  const supplierPhoneInput = document.querySelector("#supplier-phone");
+  const supplierAddressInput = document.querySelector("#supplier-address");
+  const supplierTaxIdInput = document.querySelector("#supplier-tax-id");
+  const supplierNotesInput = document.querySelector("#supplier-notes");
+  const supplierSubmitBtn = document.querySelector("#supplier-submit");
+  const supplierCancelBtn = document.querySelector("#supplier-cancel");
+  const suppliersTbody = document.querySelector("#suppliers-tbody");
+
   let currentProductId = null;
   let productsCache = [];
   let currentCategoryId = null;
   let categoriesCache = [];
   let pendingRestockProductName = null;
+  let currentSupplierId = null;
+  let suppliersCache = [];
 
   function currentView() {
     const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -685,6 +699,146 @@
       });
   }
 
+  function loadSuppliers() {
+    if (!statusEl || !suppliersTbody) {
+      return;
+    }
+    setStatus("Cargando proveedores...", "loading");
+    fetch("/api/suppliers")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load suppliers");
+        return response.json();
+      })
+      .then(function (suppliers) {
+        suppliersCache = suppliers;
+        renderSuppliersTable(suppliers);
+        setStatus("");
+      })
+      .catch(function () {
+        setStatus("Error al cargar proveedores", "error");
+      });
+  }
+
+  function renderSuppliersTable(suppliers) {
+    suppliersTbody.innerHTML = "";
+    if (!suppliers.length) {
+      suppliersTbody.innerHTML =
+        '<tr><td colspan="7" class="empty-row">Sin proveedores</td></tr>';
+      return;
+    }
+    suppliers.forEach(function (supplier) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + supplier.id + "</td>" +
+        "<td>" + (supplier.name || "") + "</td>" +
+        "<td>" + (supplier.contact_person || "") + "</td>" +
+        "<td>" + (supplier.email || "") + "</td>" +
+        "<td>" + (supplier.phone || "") + "</td>" +
+        "<td>" + (supplier.address || "") + "</td>" +
+        '<td class="actions">' +
+          '<button type="button" class="edit-supplier-btn" data-id="' + supplier.id + '">Editar</button>' +
+          '<button type="button" class="danger delete-supplier-btn" data-id="' + supplier.id + '">Eliminar</button>' +
+        "</td>";
+      suppliersTbody.appendChild(tr);
+    });
+  }
+
+  function clearSupplierForm() {
+    supplierForm.reset();
+    currentSupplierId = null;
+    supplierSubmitBtn.textContent = "Guardar";
+    supplierCancelBtn.classList.add("hidden");
+  }
+
+  function fillSupplierForm(supplier) {
+    currentSupplierId = supplier.id;
+    supplierNameInput.value = supplier.name;
+    supplierContactInput.value = supplier.contact_person || "";
+    supplierEmailInput.value = supplier.email || "";
+    supplierPhoneInput.value = supplier.phone || "";
+    supplierAddressInput.value = supplier.address || "";
+    supplierTaxIdInput.value = supplier.tax_id || "";
+    supplierNotesInput.value = supplier.notes || "";
+    supplierSubmitBtn.textContent = "Actualizar";
+    supplierCancelBtn.classList.remove("hidden");
+  }
+
+  function handleSupplierSubmit(event) {
+    event.preventDefault();
+    const payload = {
+      name: supplierNameInput.value.trim(),
+      contact_person: supplierContactInput.value.trim() || null,
+      email: supplierEmailInput.value.trim() || null,
+      phone: supplierPhoneInput.value.trim() || null,
+      address: supplierAddressInput.value.trim() || null,
+      tax_id: supplierTaxIdInput.value.trim() || null,
+      notes: supplierNotesInput.value.trim() || null,
+    };
+
+    if (!payload.name) {
+      setStatus("El nombre es obligatorio", "error");
+      return;
+    }
+
+    const url = currentSupplierId ? "/api/suppliers/" + currentSupplierId : "/api/suppliers";
+    const method = currentSupplierId ? "PUT" : "POST";
+
+    setStatus(currentSupplierId ? "Actualizando..." : "Guardando...", "loading");
+    fetch(url, {
+      method: method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (data) {
+            throw new Error(apiErrorDetail(data, "Error al guardar"));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        setStatus(currentSupplierId ? "Proveedor actualizado" : "Proveedor creado", "loading");
+        clearSupplierForm();
+        loadSuppliers();
+      })
+      .catch(function (error) {
+        setStatus(error.message, "error");
+      });
+  }
+
+  function handleSupplierAction(event) {
+    const target = event.target;
+    if (target.classList.contains("edit-supplier-btn")) {
+      const supplierId = parseInt(target.getAttribute("data-id"), 10);
+      const supplier = suppliersCache.find(function (s) { return s.id === supplierId; });
+      if (supplier) fillSupplierForm(supplier);
+    } else if (target.classList.contains("delete-supplier-btn")) {
+      const supplierId = parseInt(target.getAttribute("data-id"), 10);
+      if (!confirm("¿Eliminar este proveedor?")) return;
+      setStatus("Eliminando...", "loading");
+      fetch("/api/suppliers/" + supplierId, { method: "DELETE" })
+        .then(function (response) {
+          if (response.status === 409) {
+            return response.json().then(function (data) {
+              throw new Error(apiErrorDetail(data, "No se puede eliminar el proveedor"));
+            });
+          }
+          if (!response.ok) {
+            return response.json().then(function (data) {
+              throw new Error(apiErrorDetail(data, "Error al eliminar"));
+            });
+          }
+          setStatus("Proveedor eliminado", "loading");
+          clearSupplierForm();
+          loadSuppliers();
+        })
+        .catch(function (error) {
+          setStatus(error.message, "error");
+        });
+    }
+  }
+
   function route() {
     const target = "#/" + DEFAULT_VIEW;
     if (window.location.hash !== target && currentView() === DEFAULT_VIEW) {
@@ -706,6 +860,8 @@
     } else if (view === "restocks") {
       loadProductsForRestockSelect();
       loadRestocks();
+    } else if (view === "suppliers") {
+      loadSuppliers();
     }
   }
 
@@ -749,6 +905,18 @@
 
   if (restockForm) {
     restockForm.addEventListener("submit", handleRestockSubmit);
+  }
+
+  if (supplierForm) {
+    supplierForm.addEventListener("submit", handleSupplierSubmit);
+  }
+
+  if (supplierCancelBtn) {
+    supplierCancelBtn.addEventListener("click", clearSupplierForm);
+  }
+
+  if (suppliersTbody) {
+    suppliersTbody.addEventListener("click", handleSupplierAction);
   }
 
   window.addEventListener("hashchange", route);

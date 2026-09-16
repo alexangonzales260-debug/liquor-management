@@ -523,3 +523,33 @@ def test_e2e_restock_flow_dashboard_to_restock(client: TestClient):
 
     dashboard_after = client.get("/api/stats/dashboard").json()
     assert not any(p["id"] == product_id for p in dashboard_after["low_stock"])
+
+
+def test_suppliers_navigation_link_and_view(client: TestClient):
+    html = client.get("/").text
+    assert 'href="#/suppliers"' in html
+    assert 'data-view="suppliers"' in html
+    assert 'id="view-suppliers"' in html
+
+
+def test_suppliers_view_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="view-suppliers"' in html
+    assert 'id="supplier-form"' in html
+    assert 'id="supplier-name"' in html
+    assert 'id="supplier-contact"' in html
+    assert 'id="supplier-email"' in html
+    assert 'id="supplier-phone"' in html
+    assert 'id="supplier-address"' in html
+    assert 'id="supplier-tax-id"' in html
+    assert 'id="supplier-notes"' in html
+    assert 'id="supplier-submit"' in html
+    assert 'id="supplier-cancel"' in html
+
+
+def test_suppliers_table_has_presentational_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="suppliers-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {"id", "nombre", "contacto", "email", "teléfono", "dirección", "acciones"}

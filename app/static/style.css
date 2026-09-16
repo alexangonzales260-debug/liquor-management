@@ -523,3 +523,65 @@ form button {
   color: var(--text-muted);
   padding: 1.5rem 0.6rem;
 }
+
+#supplier-form input[type="text"],
+#supplier-form input[type="email"] {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--surface);
+}
+
+#supplier-form input[type="text"]:focus,
+#supplier-form input[type="email"]:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+#supplier-form .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+#supplier-form .form-actions button {
+  margin-top: 0;
+}
+
+#suppliers-table th,
+#suppliers-table td {
+  text-align: left;
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid #eaecef;
+}
+
+#suppliers-table th {
+  background: #f2f4f7;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+}
+
+#suppliers-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+#suppliers-table tbody tr:hover {
+  background: #f0f4fb;
+}
+
+#suppliers-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+#suppliers-table td[colspan] {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem 0.6rem;
+}

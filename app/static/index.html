@@ -20,6 +20,7 @@
         <a href="#/sales" data-view="sales">Ventas</a>
         <a href="#/categories" data-view="categories">Categorías</a>
         <a href="#/restocks" data-view="restocks">Reposiciones</a>
+        <a href="#/suppliers" data-view="suppliers">Proveedores</a>
       </div>
     </nav>
 
@@ -203,6 +204,57 @@
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="view-suppliers" class="view">
+        <div class="card">
+          <h2>Proveedores</h2>
+          <table id="suppliers-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Contacto</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Dirección</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="suppliers-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Proveedor</h2>
+          <form id="supplier-form">
+            <label for="supplier-name">Nombre</label>
+            <input id="supplier-name" name="name" type="text" required>
+
+            <label for="supplier-contact">Persona de contacto</label>
+            <input id="supplier-contact" name="contact_person" type="text">
+
+            <label for="supplier-email">Email</label>
+            <input id="supplier-email" name="email" type="email">
+
+            <label for="supplier-phone">Teléfono</label>
+            <input id="supplier-phone" name="phone" type="text">
+
+            <label for="supplier-address">Dirección</label>
+            <input id="supplier-address" name="address" type="text">
+
+            <label for="supplier-tax-id">Tax ID</label>
+            <input id="supplier-tax-id" name="tax_id" type="text">
+
+            <label for="supplier-notes">Notas</label>
+            <input id="supplier-notes" name="notes" type="text">
+
+            <div class="form-actions">
+              <button id="supplier-submit" type="submit">Guardar</button>
+              <button id="supplier-cancel" type="button" class="secondary hidden">Cancelar</button>
+            </div>
+          </form>
         </div>
       </section>
     </main>
