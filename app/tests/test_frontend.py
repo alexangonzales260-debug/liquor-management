@@ -553,3 +553,73 @@ def test_suppliers_table_has_presentational_headers(client: TestClient):
     assert table is not None
     headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
     assert headers == {"id", "nombre", "contacto", "email", "teléfono", "dirección", "acciones"}
+
+
+def test_purchase_orders_navigation_link_and_view(client: TestClient):
+    html = client.get("/").text
+    assert 'href="#/purchase-orders"' in html
+    assert 'data-view="purchase-orders"' in html
+    assert 'id="view-purchase-orders"' in html
+
+
+def test_purchase_orders_view_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="view-purchase-orders"' in html
+    assert 'id="po-filter-status"' in html
+    assert 'id="po-filter-supplier"' in html
+    assert 'id="po-filter-search"' in html
+    assert 'id="po-filter-apply"' in html
+    assert 'id="po-filter-clear"' in html
+    assert 'id="purchase-orders-table"' in html
+    assert 'id="purchase-orders-tbody"' in html
+
+
+def test_purchase_orders_table_has_presentational_headers(client: TestClient):
+    html = client.get("/").text
+    table = re.search(r'<table id="purchase-orders-table">(.*?)</table>', html, re.DOTALL)
+    assert table is not None
+    headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
+    assert headers == {
+        "id",
+        "proveedor",
+        "producto",
+        "cant. pedida",
+        "recibida",
+        "costo unit.",
+        "total",
+        "estado",
+        "fecha orden",
+        "fecha esperada",
+        "acciones",
+    }
+
+
+def test_purchase_orders_receive_modal_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="po-receive-modal"' in html
+    assert 'id="po-receive-form"' in html
+    assert 'id="po-receive-id"' in html
+    assert 'id="po-receive-qty"' in html
+    assert 'id="po-receive-confirm"' in html
+    assert 'id="po-receive-cancel"' in html
+
+
+def test_purchase_orders_cancel_modal_elements(client: TestClient):
+    html = client.get("/").text
+    assert 'id="po-cancel-modal"' in html
+    assert 'id="po-cancel-confirm"' in html
+    assert 'id="po-cancel-dismiss"' in html
+
+
+def test_purchase_orders_js_renders_actions_and_badges(client: TestClient):
+    js = client.get("/static/app.js").text
+    assert '"purchase-orders"' in js
+    assert "loadPOFilters" in js
+    assert "loadPurchaseOrders" in js
+    assert "handlePOReceive" in js
+    assert "handlePOCancel" in js
+    assert "statusBadge" in js
+    assert "receive-po-btn" in js
+    assert "cancel-po-btn" in js
+    assert "Recibir" in js
+    assert "/api/purchase-orders" in js

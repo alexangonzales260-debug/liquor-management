@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  const VIEWS = ["dashboard", "products", "sales", "categories", "restocks", "suppliers"];
+  const VIEWS = ["dashboard", "products", "sales", "categories", "restocks", "suppliers", "purchase-orders"];
   const DEFAULT_VIEW = "dashboard";
 
   const statusEl = document.querySelector("#status");
@@ -55,6 +55,21 @@
   const supplierCancelBtn = document.querySelector("#supplier-cancel");
   const suppliersTbody = document.querySelector("#suppliers-tbody");
 
+  const poFilterStatus = document.querySelector("#po-filter-status");
+  const poFilterSupplier = document.querySelector("#po-filter-supplier");
+  const poFilterSearch = document.querySelector("#po-filter-search");
+  const poFilterApplyBtn = document.querySelector("#po-filter-apply");
+  const poFilterClearBtn = document.querySelector("#po-filter-clear");
+  const poTbody = document.querySelector("#purchase-orders-tbody");
+  const poReceiveModal = document.querySelector("#po-receive-modal");
+  const poReceiveForm = document.querySelector("#po-receive-form");
+  const poReceiveIdInput = document.querySelector("#po-receive-id");
+  const poReceiveQtyInput = document.querySelector("#po-receive-qty");
+  const poReceiveCancelBtn = document.querySelector("#po-receive-cancel");
+  const poCancelModal = document.querySelector("#po-cancel-modal");
+  const poCancelConfirmBtn = document.querySelector("#po-cancel-confirm");
+  const poCancelDismissBtn = document.querySelector("#po-cancel-dismiss");
+
   let currentProductId = null;
   let productsCache = [];
   let currentCategoryId = null;
@@ -62,6 +77,8 @@
   let pendingRestockProductName = null;
   let currentSupplierId = null;
   let suppliersCache = [];
+  let poCache = [];
+  let pendingPOCancelId = null;
 
   function currentView() {
     const base = window.location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -839,6 +856,222 @@
     }
   }
 
+  function statusBadge(status) {
+    const labels = {
+      pending: "Pendiente",
+      partial: "Parcial",
+      received: "Recibida",
+      cancelled: "Cancelada",
+    };
+    return (
+      '<span class="status-badge status-' + status + '">' +
+      (labels[status] || status) +
+      "</span>"
+    );
+  }
+
+  function renderPOSupplierFilter() {
+    poFilterSupplier.innerHTML = '<option value="">Todos los proveedores</option>';
+    suppliersCache.forEach(function (supplier) {
+      const option = document.createElement("option");
+      option.value = supplier.id;
+      option.textContent = supplier.name;
+      poFilterSupplier.appendChild(option);
+    });
+  }
+
+  function loadPOFilters() {
+    if (!poFilterSupplier) {
+      return;
+    }
+    if (suppliersCache.length) {
+      renderPOSupplierFilter();
+      return;
+    }
+    fetch("/api/suppliers")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load suppliers");
+        return response.json();
+      })
+      .then(function (suppliers) {
+        suppliersCache = suppliers;
+        renderPOSupplierFilter();
+      })
+      .catch(function () {
+        setStatus("Error al cargar proveedores", "error");
+      });
+  }
+
+  function loadPurchaseOrders() {
+    if (!statusEl || !poTbody) {
+      return;
+    }
+    const params = new URLSearchParams();
+    const status = poFilterStatus.value.trim();
+    const supplierId = poFilterSupplier.value.trim();
+    const q = poFilterSearch.value.trim();
+    if (status) params.append("status", status);
+    if (supplierId) params.append("supplier_id", supplierId);
+    if (q) params.append("q", q);
+
+    setStatus("Cargando órdenes de compra...", "loading");
+    fetch("/api/purchase-orders?" + params.toString())
+      .then(function (response) {
+        if (!response.ok) throw new Error("Failed to load purchase orders");
+        return response.json();
+      })
+      .then(function (orders) {
+        poCache = orders;
+        renderPurchaseOrdersTable(orders);
+        setStatus("");
+      })
+      .catch(function () {
+        setStatus("Error al cargar órdenes de compra", "error");
+      });
+  }
+
+  function renderPurchaseOrdersTable(orders) {
+    poTbody.innerHTML = "";
+    if (!orders.length) {
+      poTbody.innerHTML =
+        '<tr><td colspan="11" class="empty-row">Sin órdenes de compra</td></tr>';
+      return;
+    }
+    orders.forEach(function (order) {
+      const tr = document.createElement("tr");
+      let actions = '<td class="actions">';
+      if (order.status === "pending" || order.status === "partial") {
+        actions +=
+          '<button type="button" class="receive-po-btn" data-id="' +
+          order.id +
+          '">Recibir</button>';
+      }
+      if (order.status === "pending") {
+        actions +=
+          '<button type="button" class="danger cancel-po-btn" data-id="' +
+          order.id +
+          '">Cancelar</button>';
+      }
+      actions += "</td>";
+      tr.innerHTML =
+        "<td>" + order.id + "</td>" +
+        "<td>" + (order.supplier_name || "") + "</td>" +
+        "<td>" + (order.product_name || "") + "</td>" +
+        "<td>" + order.qty_ordered + "</td>" +
+        "<td>" + order.qty_received + "</td>" +
+        "<td>" + formatMoney(order.unit_cost_cents) + "</td>" +
+        "<td>" + formatMoney(order.total_cost_cents) + "</td>" +
+        "<td>" + statusBadge(order.status) + "</td>" +
+        "<td>" + formatDate(order.order_date) + "</td>" +
+        "<td>" + (order.expected_date ? formatDate(order.expected_date) : "") + "</td>" +
+        actions;
+      poTbody.appendChild(tr);
+    });
+  }
+
+  function handlePOReceive(poId) {
+    const order = poCache.find(function (o) {
+      return o.id === poId;
+    });
+    if (!order || !poReceiveModal) {
+      return;
+    }
+    poReceiveIdInput.value = order.id;
+    const pendingQty = order.qty_ordered - order.qty_received;
+    poReceiveQtyInput.max = pendingQty;
+    poReceiveQtyInput.value = pendingQty;
+    poReceiveModal.classList.remove("hidden");
+    poReceiveQtyInput.focus();
+  }
+
+  function closePOReceiveModal() {
+    if (poReceiveModal) {
+      poReceiveModal.classList.add("hidden");
+    }
+  }
+
+  function submitPOReceive(event) {
+    event.preventDefault();
+    const poId = parseInt(poReceiveIdInput.value, 10);
+    const qtyReceived = parseInt(poReceiveQtyInput.value, 10);
+    if (!poId || isNaN(qtyReceived) || qtyReceived < 1) {
+      setStatus("Ingresa una cantidad válida", "error");
+      return;
+    }
+    setStatus("Recibiendo mercancía...", "loading");
+    fetch("/api/purchase-orders/" + poId + "/receive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qty_received: qtyReceived }),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (data) {
+            throw new Error(apiErrorDetail(data, "Error al recibir mercancía"));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        closePOReceiveModal();
+        setStatus("Mercancía recibida", "loading");
+        loadPurchaseOrders();
+        loadDashboard();
+        loadProductsForRestockSelect();
+        loadProductsForSaleSelect();
+      })
+      .catch(function (error) {
+        setStatus(error.message, "error");
+      });
+  }
+
+  function handlePOCancel(poId) {
+    if (!confirm("¿Cancelar esta orden de compra?")) {
+      return;
+    }
+    setStatus("Cancelando orden...", "loading");
+    fetch("/api/purchase-orders/" + poId, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "cancelled" }),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (data) {
+            throw new Error(apiErrorDetail(data, "Error al cancelar orden"));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        setStatus("Orden cancelada", "loading");
+        loadPurchaseOrders();
+      })
+      .catch(function (error) {
+        setStatus(error.message, "error");
+      });
+  }
+
+  function closePOCancelModal() {
+    if (poCancelModal) {
+      poCancelModal.classList.add("hidden");
+    }
+  }
+
+  function handlePOAction(event) {
+    const target = event.target;
+    if (target.classList.contains("receive-po-btn")) {
+      handlePOReceive(parseInt(target.getAttribute("data-id"), 10));
+    } else if (target.classList.contains("cancel-po-btn")) {
+      pendingPOCancelId = parseInt(target.getAttribute("data-id"), 10);
+      if (poCancelModal) {
+        poCancelModal.classList.remove("hidden");
+      } else {
+        handlePOCancel(pendingPOCancelId);
+      }
+    }
+  }
+
   function route() {
     const target = "#/" + DEFAULT_VIEW;
     if (window.location.hash !== target && currentView() === DEFAULT_VIEW) {
@@ -862,6 +1095,9 @@
       loadRestocks();
     } else if (view === "suppliers") {
       loadSuppliers();
+    } else if (view === "purchase-orders") {
+      loadPOFilters();
+      loadPurchaseOrders();
     }
   }
 
@@ -917,6 +1153,44 @@
 
   if (suppliersTbody) {
     suppliersTbody.addEventListener("click", handleSupplierAction);
+  }
+
+  if (poFilterApplyBtn) {
+    poFilterApplyBtn.addEventListener("click", loadPurchaseOrders);
+  }
+
+  if (poFilterClearBtn) {
+    poFilterClearBtn.addEventListener("click", function () {
+      poFilterStatus.value = "";
+      poFilterSupplier.value = "";
+      poFilterSearch.value = "";
+      loadPurchaseOrders();
+    });
+  }
+
+  if (poTbody) {
+    poTbody.addEventListener("click", handlePOAction);
+  }
+
+  if (poReceiveForm) {
+    poReceiveForm.addEventListener("submit", submitPOReceive);
+  }
+
+  if (poReceiveCancelBtn) {
+    poReceiveCancelBtn.addEventListener("click", closePOReceiveModal);
+  }
+
+  if (poCancelConfirmBtn) {
+    poCancelConfirmBtn.addEventListener("click", function () {
+      closePOCancelModal();
+      if (pendingPOCancelId) {
+        handlePOCancel(pendingPOCancelId);
+      }
+    });
+  }
+
+  if (poCancelDismissBtn) {
+    poCancelDismissBtn.addEventListener("click", closePOCancelModal);
   }
 
   window.addEventListener("hashchange", route);
