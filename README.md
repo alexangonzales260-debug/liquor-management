@@ -46,3 +46,19 @@ O bien los tests aislados:
 | GET    | `/api/products/{id}`     | Devuelve un producto por id                        |
 | PUT    | `/api/products/{id}`     | Reemplaza un producto por id                       |
 | DELETE | `/api/products/{id}`     | Elimina un producto por id (204)                   |
+| GET    | `/api/categories`        | Lista categorías (con `products_count`)            |
+| POST   | `/api/categories`        | Crea una categoría                                 |
+| GET    | `/api/categories/{id}`   | Devuelve una categoría por id                      |
+| PUT    | `/api/categories/{id}`   | Reemplaza una categoría por id (propaga el nombre a sus productos) |
+| DELETE | `/api/categories/{id}`   | Elimina una categoría por id (204); 400 si tiene productos |
+
+## Vistas (frontend)
+
+La interfaz es de una sola página con rutas por hash (`#/...`):
+
+| Ruta           | Vista                                              |
+| -------------- | -------------------------------------------------- |
+| `#/dashboard`  | KPIs y tabla de stock bajo                          |
+| `#/products`   | CRUD y filtros de productos                         |
+| `#/sales`      | Registro de ventas                                 |
+| `#/categories` | Gestión de categorías (crear, editar y eliminar)    |

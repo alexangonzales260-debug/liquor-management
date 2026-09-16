@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 VODKA = {"name": "Vodka", "category": "Spirits", "volume_ml": 750, "price_cents": 15000, "stock": 10}
 TEQUILA = {"name": "Tequila", "category": "Spirits", "volume_ml": 700, "price_cents": 21000, "stock": 5}
 MALBEC = {"name": "Malbec", "category": "Wine", "volume_ml": 750, "price_cents": 8000, "stock": 3}
+RON = {"name": "Ron", "category": "Spirits", "volume_ml": 750, "price_cents": 12000, "stock": 6}
 
 
 def create_product(client: TestClient, payload: dict[str, Any]) -> dict[str, Any]:
@@ -347,3 +348,44 @@ def test_categories_table_has_presentational_headers(client: TestClient):
     assert table is not None
     headers = {re.sub(r"\s+", " ", h).strip().lower() for h in re.findall(r"<th>(.*?)</th>", table.group(1))}
     assert headers == {"id", "nombre", "descripción", "productos", "acciones"}
+
+
+def test_index_html_category_selects_present(client: TestClient):
+    html = client.get("/").text
+    assert '<select id="category"' in html
+    assert '<select id="filter-category"' in html
+
+
+def test_e2e_categories_flow_create_product_link_cascade_delete(client: TestClient):
+    category = client.post("/api/categories", json={"name": "Spirits", "description": "Aguardientes"})
+    assert category.status_code == 201
+    category_id = category.json()["id"]
+
+    product = create_product(client, RON)
+    product_id = product["id"]
+    assert product["category"] == "Spirits"
+
+    categories = client.get("/api/categories").json()
+    assert len(categories) == 1
+    assert categories[0]["name"] == "Spirits"
+    assert categories[0]["products_count"] == 1
+
+    renamed = client.put(f"/api/categories/{category_id}", json={"name": "Destilados", "description": "Aguardientes"})
+    assert renamed.status_code == 200
+    assert renamed.json()["name"] == "Destilados"
+
+    products = client.get("/api/products").json()
+    assert [p["name"] for p in products] == ["Ron"]
+    assert all(p["category"] == "Destilados" for p in products)
+
+    blocked_delete = client.delete(f"/api/categories/{category_id}")
+    assert blocked_delete.status_code == 400
+    assert blocked_delete.json()["detail"] == "Cannot delete category with associated products"
+
+    deleted_product = client.delete(f"/api/products/{product_id}")
+    assert deleted_product.status_code == 204
+    assert client.get(f"/api/products/{product_id}").status_code == 404
+
+    deleted_category = client.delete(f"/api/categories/{category_id}")
+    assert deleted_category.status_code == 204
+    assert client.get(f"/api/categories/{category_id}").status_code == 404
