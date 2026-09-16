@@ -6,3 +6,4 @@
 | F03 — Ventas + Dashboard multi-página | ✅ Cerrada (T1-T6) | `F03` |
 | F04 — Gestión de Categorías | ✅ Cerrada (T1-T5) | `F04` |
 | F05 — Entradas / Reposición de Stock | ✅ Cerrada (T1-T5) | `F05` |
+| F06 — Proveedores / Órdenes de Compra | ✅ Cerrada (T1-T7) | `F06` |
