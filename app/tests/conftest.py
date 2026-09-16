@@ -14,16 +14,20 @@ _test_engine = create_engine(
 
 
 @pytest.fixture
-def client():
+def db_session():
     SQLModel.metadata.create_all(_test_engine)
     with Session(_test_engine) as session:
-
-        def override_get_db():
-            yield session
-
-        app.dependency_overrides[get_db] = override_get_db
-        try:
-            yield TestClient(app)
-        finally:
-            app.dependency_overrides.clear()
+        yield session
     SQLModel.metadata.drop_all(_test_engine)
+
+
+@pytest.fixture
+def client(db_session):
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
