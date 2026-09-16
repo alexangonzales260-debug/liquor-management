@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.routes.alerts import router as alerts_router
 from app.api.routes.categories import router as categories_router
 from app.api.routes.products import router as products_router
 from app.api.routes.purchase_orders import router as purchase_orders_router
@@ -29,6 +30,7 @@ app.include_router(restocks_router)
 app.include_router(sales_router)
 app.include_router(stats_router)
 app.include_router(suppliers_router)
+app.include_router(alerts_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
