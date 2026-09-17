@@ -2,9 +2,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
-from app.models.alert_rule import AlertRule
 from app.models.category import Category
-from app.models.notification import Notification
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.restock import Restock
@@ -29,9 +27,7 @@ def init_db() -> None:
 
 
 __all__ = [
-    "AlertRule",
     "Category",
-    "Notification",
     "Product",
     "PurchaseOrder",
     "Restock",
